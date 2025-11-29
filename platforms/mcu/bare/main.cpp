@@ -17,7 +17,7 @@ int main(void)
   #endif
 
   TIM1_PSC = 7199;
-  TIM1_ARR = 199;
+  TIM1_ARR = 99;
   TIM1_DIER |= 1;
 
   NVIC_ISERO = (1 << 25);

@@ -1,26 +1,25 @@
 cmake_minimum_required(VERSION 3.20)
-project(stm32_blink ASM C CXX)
+project(SMCP ASM C CXX)
 
-set(CMAKE_C_COMPILER arm-none-eabi-gcc)
-set(CMAKE_CXX_COMPILER arm-none-eabi-g++)
-set(CMAKE_ASM_COMPILER arm-none-eabi-gcc)
+set(PLATFORM "mcu" CACHE STRING "Target platform (mcu, host)")
+set_property(CACHE PLATFORM PROPERTY STRINGS "mcu" "host")
 
-option(USE_MODERN_CPP "Use modern C++ syntax with direct register access" OFF)
+option(USE_MODERN_CPP "Use modern C++ syntax" ON)
 
-set(CMAKE_CXX_FLAGS "-mcpu=cortex-m3 -mthumb -O2 -specs=nosys.specs")
-set(CMAKE_ASM_FLAGS "-mcpu=cortex-m3 -mthumb")
-set(CMAKE_EXE_LINKER_FLAGS "-nostartfiles -T${CMAKE_SOURCE_DIR}/platforms/mcu/bare/linker.ld")
+message(STATUS "Building for platform: ${PLATFORM}")
 
-add_executable(${PROJECT_NAME}.elf 
-    platforms/mcu/bare/startup.s
-    platforms/mcu/bare/main.cpp
-)
-
-set_source_files_properties(platforms/mcu/bare/startup.s PROPERTIES LANGUAGE ASM)
-
-if(USE_MODERN_CPP)
-    target_compile_definitions(${PROJECT_NAME}.elf PRIVATE NUKE_SOKOL_ASS_WITH_MODERN_CPP)
-    message(STATUS "Modern C++ syntax enabled")
+if(PLATFORM STREQUAL "mcu")
+    set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/cmake/toolchains/mcu.cmake")
+elseif(PLATFORM STREQUAL "host") 
+    set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/cmake/toolchains/host.cmake")
 else()
-    message(STATUS "Modern C++ syntax disabled. Old C style activated")
+    message(FATAL_ERROR "Unknown platform: ${PLATFORM}")
+endif()
+
+include(${CMAKE_TOOLCHAIN_FILE})
+
+if(PLATFORM STREQUAL "mcu")
+    add_subdirectory(platforms/mcu/bare)
+elseif(PLATFORM STREQUAL "host") 
+    add_subdirectory(platforms/host)
 endif()
