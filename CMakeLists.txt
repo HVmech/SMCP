@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
 project(SMCP ASM C CXX)
 
+set(DEFAULT_BUILD_TYPE "Debug")
+
+if(NOT CMAKE_BUILD_TYPE)
+    message(STATUS "No build type specified, using default: ${DEFAULT_BUILD_TYPE}")
+    set(CMAKE_BUILD_TYPE ${DEFAULT_BUILD_TYPE} CACHE STRING "Build type" FORCE)
+endif()
+
 set(PLATFORM "mcu" CACHE STRING "Target platform (mcu, host)")
 set_property(CACHE PLATFORM PROPERTY STRINGS "mcu" "host")
 

@@ -1,3 +1,5 @@
+enable_testing()
+
 function(add_host_test TESTNAME TESTSOURCE)
     add_executable(${TESTNAME} ${TESTSOURCE})
     add_test(NAME ${TESTNAME} COMMAND ${TESTNAME})
