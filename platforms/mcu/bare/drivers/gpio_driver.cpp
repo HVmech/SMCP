@@ -35,8 +35,3 @@ namespace n_GPIO
         return GPIOC.ODR & (1 << 13);
     }
 }
-
-
-
-
-

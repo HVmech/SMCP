@@ -21,12 +21,14 @@ namespace n_LED_SERVICE
             {
                 n_GPIO::set(true);
                 if (n_GPIO::get_state() == true) { status = LED_OFF; }
+                n_TIM1::set(false);
                 break;
             }
             case LED_ON :
             {
                 n_GPIO::set(false);
                 if (n_GPIO::get_state() == false) { status = LED_ON; }
+                n_TIM1::set(false);
                 break;
             }
             case LED_BLINK :

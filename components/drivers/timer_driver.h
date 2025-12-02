@@ -11,7 +11,7 @@ namespace n_TIM1
 {
     using t_TIMER1_CALLBACK = void (*)(void);
 
-    void init(t_UINT16 T_ms, t_BOOL status);
+    void init(t_UINT32 T_ms, t_BOOL status);
 
     void set(t_BOOL state);
 
