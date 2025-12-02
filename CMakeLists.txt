@@ -11,8 +11,6 @@ endif()
 set(PLATFORM "mcu" CACHE STRING "Target platform (mcu, host)")
 set_property(CACHE PLATFORM PROPERTY STRINGS "mcu" "host")
 
-option(USE_MODERN_CPP "Use modern C++ syntax" ON)
-
 message(STATUS "Building for platform: ${PLATFORM}")
 
 if(PLATFORM STREQUAL "mcu")

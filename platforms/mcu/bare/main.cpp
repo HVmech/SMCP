@@ -1,29 +1,32 @@
-#include "main.h"
 
-void delay(void) {
-    for(volatile int i = 0; i < 1000000; i++);
+#include "../../../components/drivers/gpio_driver.h"
+#include "../../../components/drivers/timer_driver.h"
+#include "../../../components/services/led_service.h"
+
+void delay(t_INT32 ticks) {
+    for(t_INT32 i = 0; i < ticks; i++) {
+      asm("nop");
+    }
 }
 
 int main(void)
 {
-  RCC_APB2ENR |= (1 << 4) | (1 << 11);
+  g_BUILT_IN_LED.init();
 
-  #if defined(NUKE_SOKOL_ASS_WITH_MODERN_CPP)
-    GPIOC.CRH &= ~(0xF << 20);
-    GPIOC.CRH |= (0x6 << 20);
-  #else
-    GPIOC->CRH &= ~(0xF << 20);
-    GPIOC->CRH |= (0x6 << 20);
-  #endif
-
-  TIM1_PSC = 7199;
-  TIM1_ARR = 99;
-  TIM1_DIER |= 1;
-
-  NVIC_ISERO = (1 << 25);
-
-  TIM1_CR1 |= (1 << 0);
-  while(1) {}
+  while(1)
+  {
+    g_BUILT_IN_LED.set(n_LED_SERVICE::LED_ON);
+    delay(100000000);
+    g_BUILT_IN_LED.set(n_LED_SERVICE::LED_OFF);
+    delay(100000000);
+    g_BUILT_IN_LED.set(n_LED_SERVICE::LED_BLINK);
+    g_BUILT_IN_LED.set_blink_period_ms(200);
+    delay(100000000);
+    g_BUILT_IN_LED.set_blink_period_ms(500);
+    delay(100000000);
+    g_BUILT_IN_LED.set_blink_period_ms(1000);
+    delay(100000000);
+  }
 }
 
 extern "C" {
@@ -31,13 +34,6 @@ extern "C" {
 
   void TIM1_UP_Handler(void)
   {
-    TIM1_SR = 0;
-
-  #if defined(NUKE_SOKOL_ASS_WITH_MODERN_CPP)
-    GPIOC.ODR ^= (1 << 13);
-  #else
-    GPIOC->ODR ^= (1 << 13);
-  #endif
-
+    n_TIM1::interrupt_handler();
   }
 }
