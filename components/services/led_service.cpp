@@ -33,7 +33,11 @@ namespace n_LED_SERVICE
             }
             case LED_BLINK :
             {
-                n_TIM1::init(get_period(), true);
+                n_GPIO::set(true);
+                n_TIM1::init(period_ms, false);
+                n_TIM1::set_callback(n_GPIO::toggle);
+                n_TIM1::set(true);
+                status = LED_BLINK;
                 break;
             }
         }
@@ -41,7 +45,15 @@ namespace n_LED_SERVICE
 
     void c_LED_SERVICE::set_blink_period_ms(t_UINT32 T_ms)
     {
-        period_ms = T_ms;
+        if (status == LED_BLINK)
+        {
+            n_TIM1::set(false);
+            period_ms = T_ms;
+            n_TIM1::init(period_ms, true);
+        } else
+        {
+            period_ms = T_ms;
+        }
     }
 
     e_LED_STATUS c_LED_SERVICE::get_state() const

@@ -6,19 +6,23 @@ namespace n_TIM1
 {
     static t_TIMER1_CALLBACK l_CALLBACK = nullptr;
 
-    void init(t_UINT32 T_ms, t_BOOL state)
-    {
-        // Упрощенный расчет, просто для примера
-        t_UINT32 prsclr = n_RCC::CONST_OSC_FREQ_MHZ * T_ms - 1;
-        t_UINT32 atrld = (n_RCC::CONST_OSC_FREQ_MHZ * T_ms / 1000) - 1;
+    void init(t_UINT32 T_ms, t_BOOL state) {
+        RCC_APB2ENR |= (1 << 11);
 
-        NVIC_ISERO = (1 << 25);
-        
-        TIM1_PSC = prsclr;
-        TIM1_ARR = atrld;
+        const t_UINT32 SYSTEM_CORE_CLOCK = 8000000;
+        const t_UINT32 TIMER_FREQ = 1000;
+
+        TIM1_PSC = (SYSTEM_CORE_CLOCK / TIMER_FREQ) - 1;
+
+        TIM1_ARR = (TIMER_FREQ * T_ms / 1000) - 1;
 
         TIM1_DIER |= 1;
 
+        TIM1_CR1 |= (1 << 3);
+        TIM1_CR1 &= ~(1 << 3);
+
+        NVIC_ISERO |= (1 << 25);
+        
         set(state);
     }
 
@@ -48,8 +52,7 @@ namespace n_TIM1
     {
         TIM1_SR = 0;
 
-        if (l_CALLBACK != nullptr)
-        {
+        if (l_CALLBACK != nullptr) {
             l_CALLBACK();
         }
     }

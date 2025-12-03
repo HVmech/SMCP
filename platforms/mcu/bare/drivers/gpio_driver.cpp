@@ -6,7 +6,7 @@ namespace n_GPIO
 {
     void init(t_BOOL state)
     {
-        RCC_APB2ENR |= (1 << 4) | (1 << 11);
+        RCC_APB2ENR |= (1 << 4);
 
         GPIOC.CRH &= ~(0xF << 20);
         GPIOC.CRH |= (0x6 << 20);
