@@ -1,0 +1,15 @@
+Using notation:
+t_uint8
+
+For array:
+arr_<name>
+
+pointers:
+ptr_<name>
+
+enums:
+e_<name>
+
+structures:
+s_<name>
+
