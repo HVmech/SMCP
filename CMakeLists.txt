@@ -1,30 +1,26 @@
 cmake_minimum_required(VERSION 3.20)
-project(SMCP ASM C CXX)
 
-set(DEFAULT_BUILD_TYPE "Debug")
-
-if(NOT CMAKE_BUILD_TYPE)
-    message(STATUS "No build type specified, using default: ${DEFAULT_BUILD_TYPE}")
-    set(CMAKE_BUILD_TYPE ${DEFAULT_BUILD_TYPE} CACHE STRING "Build type" FORCE)
+if(NOT CMAKE_TOOLCHAIN_FILE)
+    set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/toolchain/gcc-arm-none-eabi.cmake)
+    message(STATUS "Using default toolchain: ${CMAKE_TOOLCHAIN_FILE}")
 endif()
 
-set(PLATFORM "mcu" CACHE STRING "Target platform (mcu, host)")
-set_property(CACHE PLATFORM PROPERTY STRINGS "mcu" "host")
+project(SMCP C ASM)
 
-message(STATUS "Building for platform: ${PLATFORM}")
+set(SOURCES
+    startup.s
+    main.c
+)
 
-if(PLATFORM STREQUAL "mcu")
-    set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/cmake/toolchains/mcu.cmake")
-elseif(PLATFORM STREQUAL "host") 
-    set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/cmake/toolchains/host.cmake")
-else()
-    message(FATAL_ERROR "Unknown platform: ${PLATFORM}")
-endif()
+add_executable(${PROJECT_NAME}.elf ${SOURCES})
 
-include(${CMAKE_TOOLCHAIN_FILE})
+target_include_directories(${PROJECT_NAME}.elf PRIVATE
+    ${CMAKE_SOURCE_DIR}/common
+)
 
-if(PLATFORM STREQUAL "mcu")
-    add_subdirectory(platforms/mcu/bare)
-elseif(PLATFORM STREQUAL "host") 
-    add_subdirectory(platforms/host)
-endif()
+add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${PROJECT_NAME}.elf> ${PROJECT_NAME}.bin
+    COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:${PROJECT_NAME}.elf> ${PROJECT_NAME}.hex
+    COMMAND ${CMAKE_SIZE_UTIL} $<TARGET_FILE:${PROJECT_NAME}.elf>
+    COMMENT "Generating BIN/HEX and printing size"
+)

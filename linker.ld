@@ -6,12 +6,20 @@ MEMORY
     RAM (xrw)  : ORIGIN = 0x20000000, LENGTH = 20K
 }
 
-_estack = ORIGIN(RAM) + LENGTH(RAM);
-_sidata = LOADADDR(.data);
+_stack = ORIGIN(RAM) + LENGTH(RAM);
+_estack = _stack;
+
+_stext = ORIGIN(FLASH);
+_etext = _stext + SIZEOF(.text);
+
 _sdata = ADDR(.data);
 _edata = ADDR(.data) + SIZEOF(.data);
-_sbss = ADDR(.bss);
+
+_sbss = ADDR(.bss); 
 _ebss = ADDR(.bss) + SIZEOF(.bss);
+
+_end = _ebss;
+PROVIDE(end = _end);
 
 SECTIONS
 {
@@ -32,30 +40,20 @@ SECTIONS
         . = ALIGN(4);
     } >FLASH
 
-    _sidata = LOADADDR(.data);
-
-    .data : 
+    .data :
     {
         . = ALIGN(4);
-        _sdata = .;
         *(.data)
         *(.data*)
         . = ALIGN(4);
-        _edata = .;
     } >RAM AT>FLASH
 
     .bss :
     {
         . = ALIGN(4);
-        _sbss = .;
         *(.bss)
         *(.bss*)
         *(COMMON)
         . = ALIGN(4);
-        _ebss = .;
     } >RAM
-    
-    . = ALIGN(4);
-    _end = .;
-    PROVIDE(end = .);
 }
