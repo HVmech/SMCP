@@ -1,31 +1,31 @@
-#include "common/registers.h"
+#include <libopencm3/stm32/rcc.h>
+#include <libopencm3/stm32/gpio.h>
+#include <libopencm3/stm32/timer.h>
+#include <libopencm3/cm3/nvic.h>
 
 void TIM1_UP_Handler(void) {
-    TIM1_SR = 0;
-    GPIOC->ODR ^= (1U << 13);
+    timer_clear_flag(TIM1, TIM_SR_UIF);
+    gpio_toggle(GPIOC, GPIO13);
 }
 
 int main(void) {
-    RCC_APB2ENR |= (1U << 4);
-    RCC_APB2ENR |= (1U << 11);
+    // Тактирование
+    rcc_periph_clock_enable(RCC_GPIOC);
+    rcc_periph_clock_enable(RCC_TIM1);
 
-    GPIOC->CRH &= ~(0xFU << 20);
-    GPIOC->CRH |=  (0x2U << 20);
+    // GPIO
+    gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_2_MHZ,
+                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
 
-    TIM1_CR1 = 0;
-    TIM1_DIER = 0;
-    TIM1_SR = 0;
+    // Таймер: 1 кГц → 1 Гц с ARR=999
+    timer_set_prescaler(TIM1, 7199);  // 72 MHz / 7200 = 10 kHz
+    timer_set_period(TIM1, 999);      // 1000 тактов → 1 Гц
+    timer_enable_irq(TIM1, TIM_DIER_UIE);
+    timer_continuous_mode(TIM1);
+    timer_enable_counter(TIM1);
 
-    TIM1_PSC = 7999;
-    TIM1_ARR = 999;
-
-    TIM1_DIER |= (1U << 0);
-
-    TIM1_CR1 |= (1U << 0);
-
-    NVIC_ISER0 |= (1U << 25); 
-
-    GPIOC->BSRR = (1U << (13 + 16));
+    // NVIC
+    nvic_enable_irq(NVIC_TIM1_UP_IRQ);  // ← libopencm3 знает: 25
 
     while (1) {
         __asm("nop");

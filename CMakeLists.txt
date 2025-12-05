@@ -16,7 +16,16 @@ add_executable(${PROJECT_NAME}.elf ${SOURCES})
 
 target_include_directories(${PROJECT_NAME}.elf PRIVATE
     ${CMAKE_SOURCE_DIR}/common
+    ${CMAKE_SOURCE_DIR}/lib/libopencm3/include
 )
+
+target_compile_definitions(${PROJECT_NAME}.elf PRIVATE STM32F1)
+
+set(LIBOPENCM3_LIB ${CMAKE_SOURCE_DIR}/lib/libopencm3/lib/libopencm3_stm32f1.a)
+if(NOT EXISTS ${LIBOPENCM3_LIB})
+    message(FATAL_ERROR "libopencm3 not built. Run:\n  cd lib/libopencm3 && make TARGETS='stm32/f1'")
+endif()
+target_link_libraries(${PROJECT_NAME}.elf ${LIBOPENCM3_LIB})
 
 add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
     COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${PROJECT_NAME}.elf> ${PROJECT_NAME}.bin
