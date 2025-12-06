@@ -1,13 +1,7 @@
-#include "../main.h"
 #include "../tools.h"
 #include "gpio.h"
 
 static void set_mode(GPIO_struct *gpio, uint8_t pin, GPIO_mode mode);
-
-inline void apb2_enable(APB2ENR_mode mode)
-{
-  RCC_APB2ENR |= mode;
-}
 
 struct s_pin_ctrl pin_configure(GPIO_port port, uint8_t pin, GPIO_mode mode)
 {
@@ -53,19 +47,17 @@ static void set_mode(GPIO_struct *gpio, uint8_t pin, GPIO_mode mode)
   }
 }
 
-inline void enable_pin(struct s_pin_ctrl *pin)
+void pin_mode(struct s_pin_ctrl *pin, GPIO_mode mode)
 {
-  *(pin->odr_bit) = 1;
-}
+  uint32_t shift = (pin->num & 0x7) * 4;
 
-inline void disable_pin(struct s_pin_ctrl *pin)
-{
-  *(pin->odr_bit) = 0;
-}
-
-inline void switch_pin(struct s_pin_ctrl *pin)
-{
-  *(pin->odr_bit) ^= 1;
+  if(pin->num < 8){
+    pin->port->CRL &= ~(0xFU << shift);
+    pin->port->CRL |= ((uint32_t)mode << shift);
+  } else {
+    pin->port->CRH &= ~(0xFU << shift);
+    pin->port->CRH |= ((uint32_t)mode << shift);
+  }
 }
 
 /* This function to compile in good code

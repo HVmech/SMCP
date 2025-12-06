@@ -172,6 +172,7 @@ typedef struct {
 #define GPIOF_BB ((GPIO_struct_bb*)GPORT_F_BIT_BANDING)
 #define GPIOG_BB ((GPIO_struct_bb*)GPORT_G_BIT_BANDING)
 
+
 typedef enum {
 	GPIO_MODE_INPUT_PULL_UP    = 0b1000, /* but need to set ODR bit */
 	GPIO_MODE_INPUT_PULL_DOWN  = 0b1000, /* but need reset ODR bit */
@@ -194,27 +195,6 @@ typedef enum {
 } GPIO_mode;
 
 typedef enum {
-	AFIOEN = (1<<0),
-	IOPAEN = (1<<2),
-	IOPBEN = (1<<3),
-	IOPCEN = (1<<4),
-	IOPDEN = (1<<5),
-	IOPEEN = (1<<6),
-	IOPFEN = (1<<7),
-	IOPGEN = (1<<8),
-	ADC1   = (1<<9),
-	ADC2   = (1<<10),
-	TIM1   = (1<<11),
-	SPI1   = (1<<12),
-	TIM8   = (1<<13),
-	USART  = (1<<14),
-	ADC3   = (1<<15),
-	TIM9   = (1<<19),
-	TIM10  = (1<<20),
-	TIM11  = (1<<21),
-} APB2ENR_mode;
-
-typedef enum {
 	PORT_A,
 	PORT_B,
 	PORT_C
@@ -234,8 +214,22 @@ struct s_pin_ctrl {
 
 /* declaration function gpio.c */
 struct s_pin_ctrl pin_configure(GPIO_port port, uint8_t  pin,  GPIO_mode  mode);
-inline void enable_pin(struct s_pin_ctrl *pin);
-inline void disable_pin(struct s_pin_ctrl *pin);
-inline void switch_pin(struct s_pin_ctrl *pin);
+
+inline static void enable_pin(const struct s_pin_ctrl *pin)
+{
+  *(pin->odr_bit) = 1;
+}
+inline static void disable_pin(const struct s_pin_ctrl *pin)
+{
+  *(pin->odr_bit) = 0;
+}
+inline static void switch_pin(const struct s_pin_ctrl *pin)
+{
+  *(pin->odr_bit) ^= 1;
+}
+
+/* Get structure @s_pin_ctrl  and set mode for it
+ * @mode supporting GPIO_mode enum */
+void pin_mode(struct s_pin_ctrl *pin, GPIO_mode mode);
 
 #endif
