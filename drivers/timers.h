@@ -1,6 +1,8 @@
 #ifndef TIMERS_H_DOUBLEINCLUDE
 #define TIMERS_H_DOUBLEINCLUDE
 
+#include "../tools.h"
+
 #define TIM1_CR1    (*(volatile uint32_t*)0x40012C00)
 #define TIM1_PSC    (*(volatile uint32_t*)0x40012C28)
 #define TIM1_ARR    (*(volatile uint32_t*)0x40012C2C)

@@ -47,7 +47,7 @@ static void set_mode(GPIO_struct *gpio, uint8_t pin, GPIO_mode mode)
   }
 }
 
-void pin_mode(struct s_pin_ctrl *pin, GPIO_mode mode)
+void pin_mode(const struct s_pin_ctrl *pin, GPIO_mode mode)
 {
   uint32_t shift = (pin->num & 0x7) * 4;
 
@@ -59,9 +59,3 @@ void pin_mode(struct s_pin_ctrl *pin, GPIO_mode mode)
     pin->port->CRH |= ((uint32_t)mode << shift);
   }
 }
-
-/* This function to compile in good code
-void set_gpio_crl(GPIO_struct* port)
-{
-  port->CRL |= (0b0110 << 4);
-}*/

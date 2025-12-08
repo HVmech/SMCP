@@ -1,120 +1,7 @@
 #ifndef GPIO_H_DOUBLEINCLUDE
 #define GPIO_H_DOUBLEINCLUDE
 
-/* Code for exclude - stub!  */
-typedef unsigned int uint32_t;
-typedef unsigned char uint8_t;
-/* End exclude  */
-
-typedef struct {
-	/* Register CRL */
-	volatile uint32_t MODE0_0;	/* bit_0 */
-	volatile uint32_t MODE0_1;	/* bit_1 */
-	volatile uint32_t CNF0_0;	/* bit_2 */
-	volatile uint32_t CNF0_1;	/* bit_3 */
-	volatile uint32_t MODE1_0;	/* bit_4 */
-	volatile uint32_t MODE1_1;	/* bit_5 */
-	volatile uint32_t CNF1_0;	/* bit_6 */
-	volatile uint32_t CNF1_1;	/* bit_7 */
-	volatile uint32_t MODE2_0;	/* bit_8 */
-	volatile uint32_t MODE2_1;	/* bit_9 */
-	volatile uint32_t CNF2_0;	/* bit_10 */
-	volatile uint32_t CNF2_1;	/* bit_11 */
-	volatile uint32_t MODE3_0;	/* bit_12 */
-	volatile uint32_t MODE3_1;	/* bit_13 */
-	volatile uint32_t CNF3_0;	/* bit_14 */
-	volatile uint32_t CNF3_1;	/* bit_15 */
-	volatile uint32_t MODE4_0;	/* bit_16 */
-	volatile uint32_t MODE4_1;	/* bit_17 */
-	volatile uint32_t CNF4_0;	/* bit_18 */
-	volatile uint32_t CNF4_1;	/* bit_19 */
-	volatile uint32_t MODE5_0;	/* bit_20 */
-	volatile uint32_t MODE5_1;	/* bit_21 */
-	volatile uint32_t CNF5_0;	/* bit_22 */
-	volatile uint32_t CNF5_1;	/* bit_23 */
-	volatile uint32_t MODE6_0;	/* bit_24 */
-	volatile uint32_t MODE6_1;	/* bit_25 */
-	volatile uint32_t CNF6_0;	/* bit_26 */
-	volatile uint32_t CNF6_1;	/* bit_27 */
-	volatile uint32_t MODE7_0;	/* bit_28 */
-	volatile uint32_t MODE7_1;	/* bit_29 */
-	volatile uint32_t CNF7_0;	/* bit_30 */
-	volatile uint32_t CNF7_1;	/* bit_31 */
-
-	/* Register CRH */
-	volatile uint32_t MODE8_0;	/* bit_0 */
-	volatile uint32_t MODE8_1;	/* bit_1 */
-	volatile uint32_t CNF8_0;	/* bit_2 */
-	volatile uint32_t CNF8_1;	/* bit_3 */
-	volatile uint32_t MODE9_0;	/* bit_4 */
-	volatile uint32_t MODE9_1;	/* bit_5 */
-	volatile uint32_t CNF9_0;	/* bit_6 */
-	volatile uint32_t CNF9_1;	/* bit_7 */
-	volatile uint32_t MODE10_0;	/* bit_8 */
-	volatile uint32_t MODE10_1;	/* bit_9 */
-	volatile uint32_t CNF10_0;	/* bit_10 */
-	volatile uint32_t CNF10_1;	/* bit_11 */
-	volatile uint32_t MODE11_0;	/* bit_12 */
-	volatile uint32_t MODE11_1;	/* bit_13 */
-	volatile uint32_t CNF11_0;	/* bit_14 */
-	volatile uint32_t CNF11_1;	/* bit_15 */
-	volatile uint32_t MODE12_0;	/* bit_16 */
-	volatile uint32_t MODE12_1;	/* bit_17 */
-	volatile uint32_t CNF12_0;	/* bit_18 */
-	volatile uint32_t CNF12_1;	/* bit_19 */
-	volatile uint32_t MODE13_0;	/* bit_20 */
-	volatile uint32_t MODE13_1;	/* bit_21 */
-	volatile uint32_t CNF13_0;	/* bit_22 */
-	volatile uint32_t CNF13_1;	/* bit_23 */
-	volatile uint32_t MODE14_0;	/* bit_24 */
-	volatile uint32_t MODE14_1;	/* bit_25 */
-	volatile uint32_t CNF14_0;	/* bit_26 */
-	volatile uint32_t CNF14_1;	/* bit_27 */
-	volatile uint32_t MODE15_0;	/* bit_28 */
-	volatile uint32_t MODE15_1;	/* bit_29 */
-	volatile uint32_t CNF15_0;	/* bit_30 */
-	volatile uint32_t CNF15_1;	/* bit_31 */
-
-	/* Register IDR */
-	volatile uint32_t IDR0;		/* bit_0 */
-	volatile uint32_t IDR1;		/* bit_1 */
-	volatile uint32_t IDR2;		/* bit_2 */
-	volatile uint32_t IDR3;		/* bit_3 */
-	volatile uint32_t IDR4;		/* bit_4 */
-	volatile uint32_t IDR5;		/* bit_5 */
-	volatile uint32_t IDR6;		/* bit_6 */
-	volatile uint32_t IDR7;		/* bit_7 */
-	volatile uint32_t IDR8;		/* bit_8 */
-	volatile uint32_t IDR9;		/* bit_9 */
-	volatile uint32_t IDR10;	/* bit_10 */
-	volatile uint32_t IDR11;	/* bit_11 */
-	volatile uint32_t IDR12;	/* bit_12 */
-	volatile uint32_t IDR13;	/* bit_13 */
-	volatile uint32_t IDR14;	/* bit_14 */
-	volatile uint32_t IDR15;	/* bit_15 */
-
-	volatile uint32_t reserved_idr[16];
-
-	/* Register ODR */
-	volatile uint32_t ODR0;		/* bit_0 */
-	volatile uint32_t ODR1;		/* bit_1 */
-	volatile uint32_t ODR2;		/* bit_2 */
-	volatile uint32_t ODR3;		/* bit_3 */
-	volatile uint32_t ODR4;		/* bit_4 */
-	volatile uint32_t ODR5;		/* bit_5 */
-	volatile uint32_t ODR6;		/* bit_6 */
-	volatile uint32_t ODR7;		/* bit_7 */
-	volatile uint32_t ODR8;		/* bit_8 */
-	volatile uint32_t ODR9;		/* bit_9 */
-	volatile uint32_t ODR10;	/* bit_10 */
-	volatile uint32_t ODR11;	/* bit_11 */
-	volatile uint32_t ODR12;	/* bit_12 */
-	volatile uint32_t ODR13;	/* bit_13 */
-	volatile uint32_t ODR14;	/* bit_14 */
-	volatile uint32_t ODR15;	/* bit_15 */
-
-	volatile uint32_t reserved_odr[16];
-} GPIO_struct_bb;
+#include "../tools.h"
 
 typedef struct {
 	volatile uint32_t CRL;
@@ -163,14 +50,6 @@ typedef struct {
 #define GPIOE ((GPIO_struct*)GPORT_E_BASE)
 #define GPIOF ((GPIO_struct*)GPORT_F_BASE)
 #define GPIOG ((GPIO_struct*)GPORT_G_BASE)
-
-#define GPIOA_BB ((GPIO_struct_bb*)GPORT_A_BIT_BANDING)
-#define GPIOB_BB ((GPIO_struct_bb*)GPORT_B_BIT_BANDING)
-#define GPIOC_BB ((GPIO_struct_bb*)GPORT_C_BIT_BANDING)
-#define GPIOD_BB ((GPIO_struct_bb*)GPORT_D_BIT_BANDING)
-#define GPIOE_BB ((GPIO_struct_bb*)GPORT_E_BIT_BANDING)
-#define GPIOF_BB ((GPIO_struct_bb*)GPORT_F_BIT_BANDING)
-#define GPIOG_BB ((GPIO_struct_bb*)GPORT_G_BIT_BANDING)
 
 
 typedef enum {
@@ -227,9 +106,13 @@ inline static void switch_pin(const struct s_pin_ctrl *pin)
 {
   *(pin->odr_bit) ^= 1;
 }
+inline static uint8_t read_pin(const struct s_pin_ctrl *pin)
+{
+	return *(pin->idr_bit);
+}
 
 /* Get structure @s_pin_ctrl  and set mode for it
  * @mode supporting GPIO_mode enum */
-void pin_mode(struct s_pin_ctrl *pin, GPIO_mode mode);
+void pin_mode(const struct s_pin_ctrl *pin, GPIO_mode mode);
 
 #endif
