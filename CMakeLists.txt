@@ -12,9 +12,10 @@ project(SMCP C ASM)
 set(SOURCES
     startup.s
     main.c
-    drivers/smcp_gpio.c
-    drivers/smcp_gp_timer.c
-    services/led_service.c
+    temp.c
+    #drivers/smcp_gpio.c
+    #drivers/smcp_gp_timer.c
+    #services/led_service.c
 )
 
 add_executable(${PROJECT_NAME}.elf ${SOURCES})

@@ -12,6 +12,7 @@ set(CMAKE_ASM_COMPILER ${TOOLCHAIN_PREFIX}-gcc)
 # Флаги компиляции
 set(CPU_FLAGS "-mcpu=cortex-m3 -mthumb")
 set(CMAKE_C_FLAGS "${CPU_FLAGS} -Og -g3 -Wall -Wextra -Werror -std=c11 -ffreestanding" CACHE STRING "")
+#set(CMAKE_C_FLAGS "${CPU_FLAGS} -Os -flto -ffunction-sections -fdata-sections -Wl,--gc-sections -Wall -Wextra -Werror -std=c11 -ffreestanding" CACHE STRING "")
 set(CMAKE_ASM_FLAGS "${CPU_FLAGS} -g" CACHE STRING "")
 
 # 🔑 Ключевое: флаги ЛИНКОВКИ (не C_FLAGS!)

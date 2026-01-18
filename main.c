@@ -1,15 +1,16 @@
 // main.c
-#include <services/led_service.h>
+#include <temp.h>
+#include <libopencm3/stm32/rcc.h>
+#include <libopencm3/stm32/gpio.h>
 
 int main(void) {
-    led_init();
-    for (uint32_t i = 0; i < 5000000; ++i) { __asm("nop"); }
-    led_blink(10); // 2 Гц → мигание 1 Гц
-    for (uint32_t i = 0; i < 5000000; ++i) { __asm("nop"); }
-    led_set(true); // 2 Гц → мигание 1 Гц
-    for (uint32_t i = 0; i < 5000000; ++i) { __asm("nop"); }
-    led_blink(2); // 2 Гц → мигание 1 Гц
-    for (uint32_t i = 0; i < 5000000; ++i) { __asm("nop"); }
-    led_set(false); // 2 Гц → мигание 1 Гц
+    temp_c();
+    rcc_periph_clock_enable(RCC_GPIOC);
+    gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
     while (1) { __asm("nop"); }
+}
+
+void TIM2_Handler() {
+    temp_d();
+    gpio_toggle(GPIOC, GPIO13);
 }
