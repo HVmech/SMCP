@@ -1,16 +1,28 @@
-// main.c
-#include <temp.h>
-#include <libopencm3/stm32/rcc.h>
-#include <libopencm3/stm32/gpio.h>
+#include <services/LED_patterns.h>
+#include <services/LED_service.h>
+#include <drivers/time_driver.h>
+#include <drivers/RTC_driver.h>
+#include <drivers/SysTick_driver.h>
+//#include <common/board.h>
+
+s_LED_service g_BUILTIN_LED;
 
 int main(void) {
-    temp_c();
-    rcc_periph_clock_enable(RCC_GPIOC);
-    gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
-    while (1) { __asm("nop"); }
+    RTC_init();
+    SysTick_init();
+
+    if (!LED_service_init(&g_BUILTIN_LED, &LED_pattern_blink_500, 0x2D, true)) { return -1; }
+
+    LED_service_start(&g_BUILTIN_LED);
+
+    while (1) {
+        LED_service_update(&g_BUILTIN_LED);
+        __asm("nop");
+        if (get_current_time_ms() % 25000 == 24999) {
+            LED_service_execute(&g_BUILTIN_LED, &LED_pattern_SOS);
+        }
+    }
+    return 0;
 }
 
-void TIM2_Handler() {
-    temp_d();
-    gpio_toggle(GPIOC, GPIO13);
-}
+

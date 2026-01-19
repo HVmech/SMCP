@@ -9,13 +9,21 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(SMCP C ASM)
 
+file(GLOB DRIVERS_SOURCES
+    "drivers/*.c"
+    "drivers/*.cpp"
+)
+
+file(GLOB SERVICES_SOURCES
+    "services/*.c"
+    "services/*.cpp"
+)
+
 set(SOURCES
     startup.s
     main.c
-    temp.c
-    #drivers/smcp_gpio.c
-    #drivers/smcp_gp_timer.c
-    #services/led_service.c
+    ${DRIVERS_SOURCES}
+    ${SERVICES_SOURCES}
 )
 
 add_executable(${PROJECT_NAME}.elf ${SOURCES})
