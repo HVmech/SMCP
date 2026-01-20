@@ -3,7 +3,7 @@
 #include <services/LED_service.h>
 #include <drivers/time_driver.h>
 
-bool LED_service_init(s_LED_service* instance, const s_LED_service_config* config, e_board_pin pin_code, bool inverted) {
+bool LED_service_init(s_LED_service* instance, const s_LED_service_config* config, e_board_pin pin_code, bool inverted, bool repeat) {
 #ifdef DEBUG
     if (!instance || !config || !config->arr_cmd_seq || config->cmd_seq_length == 0) { return false; } // Проверка валидности указателей и массива команд
 #endif // DEBUG
@@ -13,6 +13,7 @@ bool LED_service_init(s_LED_service* instance, const s_LED_service_config* confi
     instance->curr_indx = 0;
     instance->start_time_ms = 0;
     instance->active = false;
+    instance->repeat = repeat;
 
     if (!LED_init(pin_code, inverted, &instance->led)) { // Проверка инициализации дочерней структуры - диода
         // Заполнение неинициализированных полей
@@ -70,7 +71,7 @@ void LED_service_update(s_LED_service* instance) {
                 instance->curr_indx++; // Переходим к следующей команде
 
                 if (instance->curr_indx >= instance->config->cmd_seq_length) { // Проверка достижения конца последовательности команд
-                    if (!instance->config->repeat) { // Проверка признака циклического выполнения
+                    if (!instance->repeat) { // Проверка признака циклического выполнения
                         instance->active = false; // Отключение службы
                         LED_off(&instance->led);
                         return;
@@ -88,7 +89,7 @@ void LED_service_update(s_LED_service* instance) {
     }
 }
 
-void LED_service_execute(s_LED_service* instance, const s_LED_service_config* config) {
+void LED_service_execute(s_LED_service* instance, const s_LED_service_config* config, bool repeat) {
 #ifdef DEBUG
     if (!instance || !config || !config->arr_cmd_seq || config->cmd_seq_length == 0) { return; } // При некорректных указателях команда игнорируется
 #endif
@@ -99,6 +100,7 @@ void LED_service_execute(s_LED_service* instance, const s_LED_service_config* co
     instance->config = config;
     instance->curr_indx = 0;
     instance->start_time_ms = 0;
+    instance->repeat = repeat;
 
     LED_service_start(instance); // Выполнеие новой последовательности команд
 }

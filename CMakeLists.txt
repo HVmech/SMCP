@@ -9,19 +9,23 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(SMCP C ASM)
 
+file(GLOB SERVICES_SOURCES
+    "services/*.c"
+    "services/*.cpp"
+)
 file(GLOB DRIVERS_SOURCES
     "drivers/*.c"
     "drivers/*.cpp"
 )
-
-file(GLOB SERVICES_SOURCES
-    "services/*.c"
-    "services/*.cpp"
+file(GLOB COMMON_SOURCES
+    "common/*.c"
+    "common/*.cpp"
 )
 
 set(SOURCES
     startup.s
     main.c
+    ${COMMON_SOURCES}
     ${DRIVERS_SOURCES}
     ${SERVICES_SOURCES}
 )

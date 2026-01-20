@@ -9,7 +9,4 @@
 #include <stdbool.h>
 typedef float float32_t;
 
-// Тип для представления пина платы (по физическому номеру на плате)
-typedef uint8_t e_board_pin;
-
 #endif // SMCP_TYPES_H

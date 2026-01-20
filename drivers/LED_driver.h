@@ -3,14 +3,14 @@
 #ifndef SMCP_LED_DRIVER_H
 #define SMCP_LED_DRIVER_H
 
+#include <common/board.h>
 #include <common/types.h>
-
-typedef uint8_t e_board_pin;
 
 #define LED_ON true
 #define LED_OFF false
 
 typedef struct { // Контрольная структура диода
+    // s_MCU_pin?
     uint32_t port;
     uint16_t pin;
     bool inverted;

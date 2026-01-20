@@ -7,31 +7,23 @@ bool LED_init(e_board_pin pin_code, bool inversion, s_LED_config* out_config) {
     if (!out_config) { return false; } // Если передан пустой указатель
 #endif
 
-    uint32_t port = pin_code >> 4;
-    uint16_t pin = 1 << (pin_code & 0x0F);
-
-    switch (port) { // Доступные порты: A, B, C
-        case 0: { port = GPIOA; break; }
-        case 1: { port = GPIOB; break; }
-        case 2: { port = GPIOC; break; }
-        default: { return false; }
-    }
-
-    // DEBUG
-    port = GPIOC;
-    pin = GPIO13;
+    s_MCU_pin pin_info = get_MCU_pin(pin_code); // Определение пина МК
+#ifdef DEBUG
+    if (pin_info.port == 0 || pin_info.pin == 0) { return false; } // Проверка корректности пина
+#endif
 
     // Заполняем выходную структуру
-    out_config->port = port;
-    out_config->pin = pin;
+    out_config->port = pin_info.port;
+    out_config->pin = pin_info.pin;
     out_config->inverted = inversion;
 
-    // Включаем тактирование порта GPIOC
-    rcc_periph_clock_enable(RCC_GPIOC);
-
-    gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_2_MHZ,
-                 GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
-
+    switch (pin_info.port) { // Включение тактирования соответствующего порта
+        case GPIOA: { rcc_periph_clock_enable(RCC_GPIOA); break; }
+        case GPIOB: { rcc_periph_clock_enable(RCC_GPIOB); break; }
+        case GPIOC: { rcc_periph_clock_enable(RCC_GPIOC); break; }
+        default: { return false; }
+    }
+    gpio_set_mode(pin_info.port, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, pin_info.pin);
     return true;
 }
 
