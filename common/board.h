@@ -59,7 +59,7 @@ typedef enum { // Нумерованные пины платы
     PBOOT0 = 44, // BOOT0
     PB8 = 45, // PB8 - T4C3 - SCL1 - CANRX
     PB9 = 46, // PB9 - T4C4 - SDA1 - CANTX
-    PNUMBER
+    PCNT
 } e_board_pin;
 
 s_MCU_pin get_MCU_pin(e_board_pin pin); // Определение пина МК по пину платы

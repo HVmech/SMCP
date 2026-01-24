@@ -2,11 +2,13 @@
 //TODO #include <assert.h>?
 #include <services/LED_service.h>
 #include <drivers/time_driver.h>
+#include <common/macro_debug.h>
 
 bool LED_service_init(s_LED_service* instance, const s_LED_service_config* config, e_board_pin pin_code, bool inverted, bool repeat) {
-#ifdef DEBUG
-    if (!instance || !config || !config->arr_cmd_seq || config->cmd_seq_length == 0) { return false; } // Проверка валидности указателей и массива команд
-#endif // DEBUG
+    DEBUG_STATIC_CHECK_FALSE_RET(instance, false);
+    DEBUG_STATIC_CHECK_FALSE_RET(config, false);
+    DEBUG_STATIC_CHECK_FALSE_RET(config->arr_cmd_seq, false);
+    DEBUG_STATIC_CHECK_FALSE_RET(config->cmd_seq_length, false);
 
     // Заполнение полей
     instance->config = config;
@@ -25,9 +27,7 @@ bool LED_service_init(s_LED_service* instance, const s_LED_service_config* confi
 }
 
 void LED_service_start(s_LED_service* instance) {
-#ifdef DEBUG
-    if (!instance) { return; }
-#endif // DEBUG
+    DEBUG_STATIC_CHECK_FALSE(instance);
 
     // Заполнение полей
     instance->curr_indx = 0;
@@ -39,25 +39,18 @@ void LED_service_start(s_LED_service* instance) {
 }
 
 void LED_service_stop(s_LED_service* instance) {
-#ifdef DEBUG
-    if (!instance) { return; }
-#endif // DEBUG
-
+    DEBUG_STATIC_CHECK_FALSE(instance);
     instance->active = false; // Выключение службы
     LED_off(&instance->led);
 }
 
 inline bool LED_service_is_running(const s_LED_service* instance) {
-#ifdef DEBUG
-    if (!instance) { return false; }
-#endif // DEBUG
-
+    DEBUG_STATIC_CHECK_FALSE_RET(instance, false);
     return instance->active;
 }
 
 void LED_service_update(s_LED_service* instance) {
-    // Без проверок на валидность, т.к. они сделаны на этапе инициализации
-
+    DEBUG_STATIC_CHECK_FALSE(instance);
     if (instance->active) { // Проверка активации службы
         const s_LED_service_config* config = instance->config;
         const s_LED_command* cmd = &config->arr_cmd_seq[instance->curr_indx];
@@ -90,9 +83,10 @@ void LED_service_update(s_LED_service* instance) {
 }
 
 void LED_service_execute(s_LED_service* instance, const s_LED_service_config* config, bool repeat) {
-#ifdef DEBUG
-    if (!instance || !config || !config->arr_cmd_seq || config->cmd_seq_length == 0) { return; } // При некорректных указателях команда игнорируется
-#endif
+    DEBUG_STATIC_CHECK_FALSE(instance);
+    DEBUG_STATIC_CHECK_FALSE(config);
+    DEBUG_STATIC_CHECK_FALSE(config->arr_cmd_seq);
+    DEBUG_STATIC_CHECK_FALSE(config->cmd_seq_length);
 
     if (LED_service_is_running(instance)) { LED_service_stop(instance); } // Остановка службы
 

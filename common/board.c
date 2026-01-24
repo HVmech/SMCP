@@ -1,7 +1,6 @@
 #include <common/board.h>
 
-// Внутренняя таблица соответствия физических пинов платы и пинов микроконтроллера
-static const s_MCU_pin mcu_pins_map[] = {
+static const s_MCU_pin MCU_pins_map[] = { // Внутренняя таблица соответствия физических пинов платы и пинов МК
     {0, 0}, // 0 - PUNUSED
     {0, 0}, // 1 - VBAT
     {GPIOC, GPIO13}, // PC13 = 2
@@ -52,6 +51,6 @@ static const s_MCU_pin mcu_pins_map[] = {
 };
 
 s_MCU_pin get_MCU_pin(e_board_pin pin) {
-    if (pin < PNUMBER) { return mcu_pins_map[pin]; }
+    if (pin < PCNT) { return MCU_pins_map[pin]; }
     return (s_MCU_pin){0, 0}; // Недопустимое значение
 }

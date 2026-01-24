@@ -15,7 +15,7 @@ void SysTick_init(void) {
     systick_counter_enable(); // Запуск таймера
 }
 
-inline uint32_t get_SysTick(void) {
+uint32_t get_SysTick(void) {
     return SysTick_counter;
 }
 

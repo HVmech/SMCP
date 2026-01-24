@@ -5,6 +5,11 @@ if(NOT CMAKE_TOOLCHAIN_FILE)
     message(STATUS "Using default toolchain: ${CMAKE_TOOLCHAIN_FILE}")
 endif()
 
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
+    message(STATUS "Build type not specified, defaulting to Debug")
+endif()
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(SMCP C ASM)
@@ -38,6 +43,13 @@ target_include_directories(${PROJECT_NAME}.elf PRIVATE
 )
 
 target_compile_definitions(${PROJECT_NAME}.elf PRIVATE STM32F1)
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(${PROJECT_NAME}.elf PRIVATE DEBUG)
+    message(STATUS "Debug macros enabled for target ${PROJECT_NAME}.elf")
+else()
+    message(STATUS "Debug macros disabled")
+endif()
 
 set(LIBOPENCM3_LIB ${CMAKE_SOURCE_DIR}/libs/libopencm3/lib/libopencm3_stm32f1.a)
 if(NOT EXISTS ${LIBOPENCM3_LIB})

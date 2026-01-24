@@ -1,11 +1,11 @@
 #include <services/LED_patterns.h>
 
-#define LED_COMMAND(action, ms)  { (action),  (ms) } // Макрос создания команды
+#define MACRO_LED_COMMAND(action, ms)  { (action),  (ms) } // Макрос создания команды
 
 // 1. Blink 500: ВКЛ/ВЫКЛ по 500 мс
 static const s_LED_command blink_500_seq[] = {
-    LED_COMMAND(true,  500),
-    LED_COMMAND(false, 500)
+    MACRO_LED_COMMAND(true,  500),
+    MACRO_LED_COMMAND(false, 500)
 };
 const s_LED_service_config LED_pattern_blink_500 = {
     .arr_cmd_seq = blink_500_seq,
@@ -14,8 +14,8 @@ const s_LED_service_config LED_pattern_blink_500 = {
 
 // 2. Blink 1000: ВКЛ/ВЫКЛ по 1 с
 static const s_LED_command blink_1000_seq[] = {
-    LED_COMMAND(true,  1000),
-    LED_COMMAND(false, 1000)
+    MACRO_LED_COMMAND(true,  1000),
+    MACRO_LED_COMMAND(false, 1000)
 };
 const s_LED_service_config LED_pattern_blink_1000 = {
     .arr_cmd_seq = blink_1000_seq,
@@ -24,10 +24,10 @@ const s_LED_service_config LED_pattern_blink_1000 = {
 
 // 3. Heartbeat: имитация пульса (короткое мигание + пауза)
 static const s_LED_command heartbeat_seq[] = {
-    LED_COMMAND(true,   100),  // Короткий импульс
-    LED_COMMAND(false, 400),  // Пауза
-    LED_COMMAND(true,   100),  // Второй импульс
-    LED_COMMAND(false, 900)   // Длинная пауза
+    MACRO_LED_COMMAND(true,   100),  // Короткий импульс
+    MACRO_LED_COMMAND(false, 400),  // Пауза
+    MACRO_LED_COMMAND(true,   100),  // Второй импульс
+    MACRO_LED_COMMAND(false, 900)   // Длинная пауза
 };
 const s_LED_service_config LED_pattern_heartbeat = {
     .arr_cmd_seq = heartbeat_seq,
@@ -38,17 +38,17 @@ const s_LED_service_config LED_pattern_heartbeat = {
 // Точка = 200 мс, тире = 600 мс, паузы между элементами = 200 мс
 static const s_LED_command sos_seq[] = {
     // S: · · ·
-    LED_COMMAND(true,  200), LED_COMMAND(false, 200),
-    LED_COMMAND(true,  200), LED_COMMAND(false, 200),
-    LED_COMMAND(true,  200), LED_COMMAND(false, 600),  // пауза между буквами
+    MACRO_LED_COMMAND(true,  200), MACRO_LED_COMMAND(false, 200),
+    MACRO_LED_COMMAND(true,  200), MACRO_LED_COMMAND(false, 200),
+    MACRO_LED_COMMAND(true,  200), MACRO_LED_COMMAND(false, 600),  // пауза между буквами
     // O: – – –
-    LED_COMMAND(true,  600), LED_COMMAND(false, 200),
-    LED_COMMAND(true,  600), LED_COMMAND(false, 200),
-    LED_COMMAND(true,  600), LED_COMMAND(false, 600),  // пауза между буквами
+    MACRO_LED_COMMAND(true,  600), MACRO_LED_COMMAND(false, 200),
+    MACRO_LED_COMMAND(true,  600), MACRO_LED_COMMAND(false, 200),
+    MACRO_LED_COMMAND(true,  600), MACRO_LED_COMMAND(false, 600),  // пауза между буквами
     // S: · · ·
-    LED_COMMAND(true,  200), LED_COMMAND(false, 200),
-    LED_COMMAND(true,  200), LED_COMMAND(false, 200),
-    LED_COMMAND(true,  200), LED_COMMAND(false, 1000)  // длинная пауза в конце
+    MACRO_LED_COMMAND(true,  200), MACRO_LED_COMMAND(false, 200),
+    MACRO_LED_COMMAND(true,  200), MACRO_LED_COMMAND(false, 200),
+    MACRO_LED_COMMAND(true,  200), MACRO_LED_COMMAND(false, 1000)  // длинная пауза в конце
 };
 const s_LED_service_config LED_pattern_SOS = {
     .arr_cmd_seq = sos_seq,

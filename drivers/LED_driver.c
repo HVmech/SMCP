@@ -3,15 +3,13 @@
 #include <drivers/LED_driver.h>
 
 bool LED_init(e_board_pin pin_code, bool inversion, s_LED_config* out_config) {
-#ifdef DEBUG
-    if (!out_config) { return false; } // Если передан пустой указатель
-#endif
-
+    DEBUG_STATIC_CHECK_FALSE_RET(out_config, false);
     s_MCU_pin pin_info = get_MCU_pin(pin_code); // Определение пина МК
 #ifdef DEBUG
     if (pin_info.port == 0 || pin_info.pin == 0) { return false; } // Проверка корректности пина
 #endif
-
+    DEBUG_STATIC_CHECK_FALSE_RET(pin_info.port, false);
+    DEBUG_STATIC_CHECK_FALSE_RET(pin_info.pin, false);
     // Заполняем выходную структуру
     out_config->port = pin_info.port;
     out_config->pin = pin_info.pin;
@@ -28,6 +26,7 @@ bool LED_init(e_board_pin pin_code, bool inversion, s_LED_config* out_config) {
 }
 
 void LED_set(const s_LED_config* config, bool state) {
+    DEBUG_STATIC_CHECK_FALSE(config);
     // state   : 1, 1, 0, 0
     // inverted: 0, 1, 0, 1
     // result  : 1, 0, 0, 1
@@ -36,12 +35,4 @@ void LED_set(const s_LED_config* config, bool state) {
     } else {
         gpio_clear(config->port, config->pin);
     }
-}
-
-inline void LED_on(const s_LED_config* config) {
-    LED_set(config, LED_ON);
-}
-
-inline void LED_off(const s_LED_config* config) {
-    LED_set(config, LED_OFF);
 }
