@@ -19,10 +19,13 @@ void serial_debug_printf(const char *format, ...); // Форматированн
 
 // Прием данных
 bool serial_debug_getchar(uint8_t *ch);
+
 uint16_t serial_debug_available(void);
 
 // Утилиты
 void serial_debug_flush(void);
 bool serial_debug_is_busy(void);
+
+void serial_debug_echo_simple(void);
 
 #endif // SERIAL_DEBUG_SERVICE_H

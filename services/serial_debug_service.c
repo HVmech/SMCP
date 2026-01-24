@@ -169,7 +169,8 @@ void serial_debug_printf(const char *format, ...) { // Форматирован�
 
 bool serial_debug_getchar(uint8_t *ch) { // Чтение символа
     DEBUG_STATIC_CHECK_FALSE_RET(initialized, false);
-    return ch && USART_receive(&serial_USART_driver, ch);
+    DEBUG_STATIC_CHECK_FALSE_RET(ch, false);
+    return USART_receive(&serial_USART_driver, ch);
 }
 
 uint16_t serial_debug_available(void) { // Количество доступных символов
@@ -185,4 +186,18 @@ void serial_debug_flush(void) { // Ожидание отправки всех д
 bool serial_debug_is_busy(void) { // Проверка доступности
     DEBUG_STATIC_CHECK_FALSE_RET(initialized, false);
     return USART_TX_is_busy(&serial_USART_driver);
+}
+
+void serial_debug_echo_simple(void) {
+    DEBUG_STATIC_CHECK_FALSE(initialized);
+    
+    static uint8_t ch;
+    if (serial_debug_getchar(&ch)) { // Проверка получения символа
+        serial_debug_putchar(ch);
+        
+        // Автоматический перевод строки при нажатии Enter
+        if (ch == '\r') {
+            serial_debug_putchar('\n');
+        }
+    }
 }

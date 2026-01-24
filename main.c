@@ -49,6 +49,8 @@ int main(void) {
             
             pattern_toggle = !pattern_toggle;  // Чередование паттернов
         }
+
+        serial_debug_echo_simple();
         
         // Вывод статуса каждую секунду (опционально)
         if (current_time - last_print_time >= 1000) {
