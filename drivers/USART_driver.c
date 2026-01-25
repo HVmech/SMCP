@@ -31,18 +31,16 @@ static inline uint8_t get_USART_IRQ_number(e_USART_port port) { // Получе�
 static inline void USART_TX_start_transmission(s_USART_driver *drv) {
     DEBUG_STATIC_CHECK_FALSE(drv);
     if (drv->TX_active) { return; } // Передача уже запущена
-    
-    __asm volatile ("cpsid i");
-    //cm_disable_interrupts(); // Выключение прерываний
+
+    cm_disable_interrupts(); // Выключение прерываний
     if (!ring_buffer_is_empty(&drv->TX_buff)) {
         uint8_t data;
         ring_buffer_read(&drv->TX_buff, &data);
-        USART_DR(get_USART_port_address(drv->port)) = data;
+        usart_send(get_USART_port_address(drv->port), data);
         drv->TX_active = true;
-        USART_CR1(get_USART_port_address(drv->port)) |= USART_CR1_TXEIE;
+        usart_enable_tx_interrupt(get_USART_port_address(drv->port));
     }
-    __asm volatile ("cpsie i");
-    //cm_enable_interrupts(); // Включение прерываний
+    cm_enable_interrupts(); // Включение прерываний
 }
 
 bool USART_init(s_USART_driver *drv, const s_USART_config *cfg, uint8_t *TX_buff, const uint16_t TX_size, uint8_t *RX_buff, const uint16_t RX_size, bool need_stats) {

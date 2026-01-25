@@ -30,23 +30,13 @@ void serial_debug_putchar(char ch) {
     USART_send(&serial_USART_driver, (uint8_t)ch);
 }
 
-void serial_debug_puts_fast(const char *str) {
+void serial_debug_puts(const char *str) {
     DEBUG_STATIC_CHECK_FALSE(initialized);
     DEBUG_STATIC_CHECK_FALSE(str);
     
     const char *end = str;
     while (*end) { end++; } // Поиск конца строки
     USART_send_sequence(&serial_USART_driver, (const uint8_t*)str, (uint16_t)(end - str));
-}
-
-void serial_debug_puts(const char *str) {
-    DEBUG_STATIC_CHECK_FALSE(initialized);
-    DEBUG_STATIC_CHECK_FALSE(str);
-
-    uint16_t len = 0;
-    const char *p = str;
-    while (*p++) len++; // Подсчет длины строки
-    USART_send_sequence(&serial_USART_driver, (const uint8_t*)str, len);
 }
 
 void serial_debug_putu(uint32_t num) {
@@ -194,8 +184,6 @@ void serial_debug_echo_simple(void) {
     static uint8_t ch;
     if (serial_debug_getchar(&ch)) { // Проверка получения символа
         serial_debug_putchar(ch);
-        
-        // Автоматический перевод строки при нажатии Enter
         if (ch == '\r') {
             serial_debug_putchar('\n');
         }
