@@ -7,6 +7,7 @@
 
 static const uint32_t serial_flush_timeout_tick = 1000;
 static const char *hex = "0123456789ABCDEF";
+static volatile uint32_t tx_drop_counter = 0;
 
 static s_USART_driver serial_USART_driver;
 static uint8_t TX_buffer[DEBUG_TX_BUFFER_SIZE];
@@ -27,13 +28,19 @@ bool serial_debug_init(e_USART_port port, uint32_t baudrate, bool remap_pins, bo
 
 void serial_debug_putchar(char ch) {
     DEBUG_STATIC_CHECK_FALSE(initialized);
-    USART_send(&serial_USART_driver, (uint8_t)ch);
+    if (!USART_send(&serial_USART_driver, (uint8_t)ch)) {
+        ++tx_drop_counter;
+    }
+}
+
+static inline void serial_print_drop_stats(void) {
+    serial_debug_printf("TX bytes dropped: %u\r\n", tx_drop_counter);
 }
 
 void serial_debug_puts(const char *str) {
     DEBUG_STATIC_CHECK_FALSE(initialized);
     DEBUG_STATIC_CHECK_FALSE(str);
-    
+
     const char *end = str;
     while (*end) { end++; } // Поиск конца строки
     USART_send_sequence(&serial_USART_driver, (const uint8_t*)str, (uint16_t)(end - str));
@@ -188,4 +195,17 @@ void serial_debug_echo_simple(void) {
             serial_debug_putchar('\n');
         }
     }
+}
+
+void serial_print_stats(void) {
+    serial_debug_printf("Serial debug service stats:\r\n");
+    serial_debug_printf("BR: %u, BS: %u, FE: %u, NE: %u, PE: %u, OE: %u\r\n",
+        serial_USART_driver.stats.bytes_received,
+        serial_USART_driver.stats.bytes_sent,
+        serial_USART_driver.stats.framing_errors,
+        serial_USART_driver.stats.noise_errors,
+        serial_USART_driver.stats.parity_errors,
+        serial_USART_driver.stats.overrun_errors
+    );
+    if (tx_drop_counter) { serial_print_drop_stats(); tx_drop_counter = 0; }
 }

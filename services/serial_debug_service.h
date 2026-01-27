@@ -27,5 +27,6 @@ void serial_debug_flush(void);
 bool serial_debug_is_busy(void);
 
 void serial_debug_echo_simple(void);
+void serial_print_stats(void);
 
 #endif // SERIAL_DEBUG_SERVICE_H

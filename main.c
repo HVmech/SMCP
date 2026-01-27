@@ -12,7 +12,7 @@ s_LED_service g_BUILTIN_LED;
 int main(void) {
     RTC_init();
     SysTick_init();
-    if (!serial_debug_init(USART_1, 9600, true, false)) { return -1; }
+    if (!serial_debug_init(USART_1, 115200, false, false)) { return -1; }
     if (!LED_service_init(&g_BUILTIN_LED, &LED_pattern_heartbeat, PIN_LED_BUILTIN, true, true)) { return -1; }
 
     #ifdef DEBUG
@@ -56,6 +56,7 @@ int main(void) {
         if (current_time - last_print_time >= 1000) {
             last_print_time = current_time;
             serial_debug_printf("[%u] Uptime: %u sec, Counter: %u\r\n", current_time, current_time / 1000, counter++);
+            serial_print_stats();
         }
     }
 
