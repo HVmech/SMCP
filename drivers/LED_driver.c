@@ -1,15 +1,14 @@
+#include <drivers/LED_driver.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
-#include <drivers/LED_driver.h>
 
 bool LED_init(e_board_pin pin_code, bool inversion, s_LED_config* out_config) {
-    DEBUG_STATIC_CHECK_FALSE_RET(out_config, false);
+    DEBUG_ASSERT(out_config);
     s_MCU_pin pin_info = get_MCU_pin(pin_code); // Определение пина МК
 #ifdef DEBUG
     if (pin_info.port == 0 || pin_info.pin == 0) { return false; } // Проверка корректности пина
 #endif
-    DEBUG_STATIC_CHECK_FALSE_RET(pin_info.port, false);
-    DEBUG_STATIC_CHECK_FALSE_RET(pin_info.pin, false);
+    DEBUG_ASSERT(pin_info.port && pin_info.pin);
     // Заполняем выходную структуру
     out_config->port = pin_info.port;
     out_config->pin = pin_info.pin;
@@ -26,7 +25,7 @@ bool LED_init(e_board_pin pin_code, bool inversion, s_LED_config* out_config) {
 }
 
 void LED_set(const s_LED_config* config, bool state) {
-    DEBUG_STATIC_CHECK_FALSE(config);
+    DEBUG_ASSERT(config);
     // state   : 1, 1, 0, 0
     // inverted: 0, 1, 0, 1
     // result  : 1, 0, 0, 1

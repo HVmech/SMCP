@@ -2,7 +2,7 @@
 #include <libopencm3/stm32/rcc.h>
 #include <drivers/SysTick_driver.h>
 
-static volatile uint32_t SysTick_counter = 0;
+volatile uint32_t SysTick_cnt = 0;
 
 void SysTick_init(void) {
     // Расчёт количества тактов для 1 мс и источника AHB/8:
@@ -15,10 +15,6 @@ void SysTick_init(void) {
     systick_counter_enable(); // Запуск таймера
 }
 
-uint32_t get_SysTick(void) {
-    return SysTick_counter;
-}
-
 void SysTick_Handler(void) { // Прерывание SysTick
-    SysTick_counter++;
+    SysTick_cnt++;
 }

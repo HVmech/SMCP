@@ -62,8 +62,6 @@ typedef enum { // Нумерованные пины платы
     PCNT
 } e_board_pin;
 
-s_MCU_pin get_MCU_pin(e_board_pin pin); // Определение пина МК по пину платы
-
 // Специальные пины платы
 #define PIN_LED_BUILTIN     PC13
 #define PIN_WKUP_BUTTON     PA0
@@ -88,5 +86,7 @@ s_MCU_pin get_MCU_pin(e_board_pin pin); // Определение пина МК 
 
 #define PIN_I2C2_SCL        PB10
 #define PIN_I2C2_SDA        PB11
+
+s_MCU_pin get_MCU_pin(e_board_pin pin); // Определение пина МК по пину платы
 
 #endif // SMCP_BOARD_H

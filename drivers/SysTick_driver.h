@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdint.h>
 #ifndef SMCP_SYSTICK_DRIVER_H
 #define SMCP_SYSTICK_DRIVER_H
 
@@ -8,8 +9,8 @@
 
 #define CONST_MS_PER_TICK 1U
 
-void SysTick_init(void); // Инициализация SysTick
+extern volatile uint32_t SysTick_cnt; // Счетчик тиков
 
-uint32_t get_SysTick(void); // Получение текущего тика
+void SysTick_init(void); // Инициализация SysTick
 
 #endif // SMCP_SYSTICK_DRIVER_H

@@ -1,4 +1,5 @@
 #include <common/board.h>
+#include <common/debug_assert.h>
 
 static const s_MCU_pin MCU_pins_map[] = { // Внутренняя таблица соответствия физических пинов платы и пинов МК
     {0, 0}, // 0 - PUNUSED
@@ -50,7 +51,7 @@ static const s_MCU_pin MCU_pins_map[] = { // Внутренняя таблица
     {GPIOB, GPIO9}, // PB9 = 46
 };
 
-s_MCU_pin get_MCU_pin(e_board_pin pin) {
-    if (pin < PCNT) { return MCU_pins_map[pin]; }
-    return (s_MCU_pin){0, 0}; // Недопустимое значение
+s_MCU_pin get_MCU_pin(e_board_pin pin) { // Функция определения пина МК по номеру пина платы
+    DEBUG_ASSERT(pin < PCNT); // Проверка на недопустимое значение
+    return MCU_pins_map[pin];
 }

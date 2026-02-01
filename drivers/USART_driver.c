@@ -1,85 +1,78 @@
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/usart.h>
+#include <libopencm3/cm3/common.h>
 #include <libopencm3/cm3/nvic.h>
-#include <libopencm3/cm3/cortex.h>
+
 #include <drivers/USART_driver.h>
-#include <common/macro_asm.h>
-#include <common/macro_debug.h>
+#include <drivers/SysTick_driver.h>
 
-static const uint32_t USART_port_map[] = {USART1, USART2, USART3};
-static const uint32_t USART_IRQ_map[] = {NVIC_USART1_IRQ, NVIC_USART2_IRQ, NVIC_USART3_IRQ};
+#include <common/debug_assert.h>
+#include <common/asm.h>
 
-static s_USART_driver* USART_driver_list[USART_CNT];
+static const uint32_t USART_port_map[USART_CNT] = {USART1, USART2, USART3};
+static const uint8_t USART_IRQ_map[USART_CNT] = {NVIC_USART1_IRQ, NVIC_USART2_IRQ, NVIC_USART3_IRQ};
 
-static inline void USART_register_driver(s_USART_driver *drv) {
-    DEBUG_STATIC_CHECK_FALSE(drv);
-    DEBUG_STATIC_CHECK_FALSE(drv->port < USART_CNT);
-    USART_driver_list[drv->port] = drv;
-}
+static USART_driver_t *USART_driver_list[USART_CNT] = {0};
 
-static inline uint32_t get_USART_port_address(e_USART_port port) { // Получение адреса USART
-    DEBUG_STATIC_CHECK_FALSE_RET(port < USART_CNT, 0);
+static inline uint32_t USART_get_port_address(USART_port_e port) {
+    DEBUG_ASSERT(port < USART_CNT);
     return USART_port_map[port];
 }
 
-static inline uint8_t get_USART_IRQ_number(e_USART_port port) { // Получение номера прерывания
-    DEBUG_STATIC_CHECK_FALSE_RET(port < USART_CNT, 0);
+static inline uint8_t USART_get_IRQ_number(USART_port_e port) {
+    DEBUG_ASSERT(port < USART_CNT);
     return USART_IRQ_map[port];
 }
 
-static inline void USART_TX_start_transmission(s_USART_driver *drv) {
-    DEBUG_STATIC_CHECK_FALSE(drv);
-    if (drv->TX_active) { return; } // Передача уже запущена
-    const uint32_t USART_adress = get_USART_port_address(drv->port);
-
-    usart_disable_tx_interrupt(USART_adress); // Выключение прерываний передачи
-
-    if (!ring_buffer_is_empty(&drv->TX_buff)) {
-        uint8_t data;
-        ring_buffer_read(&drv->TX_buff, &data);
-        drv->TX_active = true;
-        usart_send(USART_adress, data);
-        usart_enable_tx_interrupt(get_USART_port_address(drv->port)); // Включение прерываний передачи
-    }
+static inline bool USART_has_errors(uint32_t sr) {
+    return sr & (USART_SR_ORE | USART_SR_NE | USART_SR_FE | USART_SR_PE);
 }
 
-bool USART_init(s_USART_driver *drv, const s_USART_config *cfg, uint8_t *TX_buff, const uint16_t TX_size, uint8_t *RX_buff, const uint16_t RX_size, bool need_stats) {
-    DEBUG_STATIC_CHECK_FALSE_RET(drv, false);
-    DEBUG_STATIC_CHECK_FALSE_RET(cfg, false);
-    drv->port = cfg->port;
-    drv->baudrate = cfg->baudrate;
-    drv->TX_active = false;
-    
-    drv->stats.is_enabled = need_stats;
-    drv->stats.bytes_received = 0;
-    drv->stats.bytes_sent = 0;
-    drv->stats.framing_errors = 0;
-    drv->stats.noise_errors = 0;
-    drv->stats.overrun_errors = 0;
-    drv->stats.parity_errors = 0;
+static inline bool USART_TX_is_ready(uint32_t sr) {
+    return sr & USART_SR_TXE;
+}
 
-    USART_register_driver(drv);
+static inline bool USART_RX_is_ready(uint32_t sr) {
+    return sr & USART_SR_RXNE;
+}
 
-    if (TX_buff && TX_size) { // Инициализация буфера передачи
-        ring_buffer_init(&drv->TX_buff, TX_buff, TX_size);
-    }
-    
-    if (RX_buff && RX_size) { // Инициализация буфера приема
-        ring_buffer_init(&drv->RX_buff, RX_buff, RX_size);
+static inline bool USART_register_driver(USART_driver_t *drv) {
+    DEBUG_ASSERT(drv); // Проверка указателей
+    DEBUG_ASSERT(drv->port < USART_CNT); // Проверка корректности порта
+
+    if (USART_driver_list[drv->port]) {
+        return false; // уже зарегистрирован
     }
 
-    switch (drv->port) { // Аппаратная настройка USART
+    USART_driver_list[drv->port] = drv;
+    return true;
+}
+
+static inline bool USART_load_config(const USART_config_t *cfg) {
+    DEBUG_ASSERT(cfg); // Проверка указателей
+
+    const uint32_t usart = USART_get_port_address(cfg->port); // Получение адреса порта
+
+    // Отключение USART и прерываний
+    usart_disable_tx_interrupt(usart);
+    usart_disable_rx_interrupt(usart);
+    usart_disable(usart);
+
+    // Настройка портов и тактирования
+    switch (cfg->port) {
         case USART_1: {
             rcc_periph_clock_enable(RCC_USART1);
-            if (cfg->remap_pins) { // Альтернативные пины USART1: PB6, PB7
+
+            if (cfg->remap) {
                 rcc_periph_clock_enable(RCC_AFIO);
                 gpio_primary_remap(AFIO_MAPR_SWJ_CFG_JTAG_OFF_SW_ON, AFIO_MAPR_USART1_REMAP);
+
                 rcc_periph_clock_enable(RCC_GPIOB);
                 gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO6);
                 gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO7);
                 gpio_set(GPIOB, GPIO7);
-            } else { // Стандартные пины USART1: PA9, PA10
+            } else {
                 rcc_periph_clock_enable(RCC_GPIOA);
                 gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO9);
                 gpio_set_mode(GPIOA, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO10);
@@ -87,7 +80,7 @@ bool USART_init(s_USART_driver *drv, const s_USART_config *cfg, uint8_t *TX_buff
             }
             break;
         }
-        case USART_2: { // Стандартные пины USART2: PA2/PA3
+        case USART_2: {
             rcc_periph_clock_enable(RCC_USART2);
             rcc_periph_clock_enable(RCC_GPIOA);
             gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO2);
@@ -95,7 +88,7 @@ bool USART_init(s_USART_driver *drv, const s_USART_config *cfg, uint8_t *TX_buff
             gpio_set(GPIOA, GPIO3);
             break;
         }
-        case USART_3: { // Стандартные пины USART3: PB10/PB11
+        case USART_3: {
             rcc_periph_clock_enable(RCC_USART3);
             rcc_periph_clock_enable(RCC_GPIOB);
             gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO10);
@@ -103,174 +96,171 @@ bool USART_init(s_USART_driver *drv, const s_USART_config *cfg, uint8_t *TX_buff
             gpio_set(GPIOB, GPIO11);
             break;
         }
-        default: { return false; }
-    }
-    
-    const uint32_t USART_adress = get_USART_port_address(drv->port);
-    usart_set_baudrate(USART_adress, drv->baudrate);
-    usart_set_databits(USART_adress, 8);
-    usart_set_stopbits(USART_adress, USART_STOPBITS_1);
-    usart_set_parity(USART_adress, USART_PARITY_NONE);
-    usart_set_mode(USART_adress, USART_MODE_TX_RX);
-
-    if (RX_buff) { usart_enable_rx_interrupt(USART_adress); } // Включение прерывания приема при наличии буфера
-    usart_disable_tx_interrupt(USART_adress); // Выключение прерывания передачи
-
-    // Настройка контроллера прерываний NVIC
-    const uint8_t USART_number = get_USART_IRQ_number(drv->port);
-    nvic_set_priority(USART_number, 1);
-    nvic_enable_irq(USART_number);
-    
-    usart_enable(USART_adress);
-    return true;
-}
-
-bool USART_send(s_USART_driver *drv, uint8_t byte) {
-    DEBUG_STATIC_CHECK_FALSE_RET(drv, false);
-    if (!ring_buffer_write(&drv->TX_buff, byte)) return false;
-    USART_TX_start_transmission(drv);
-    return true;
-}
-
-bool USART_receive(s_USART_driver *drv, uint8_t *byte) {
-    DEBUG_STATIC_CHECK_FALSE_RET(drv, false);
-    DEBUG_STATIC_CHECK_FALSE_RET(byte, false);
-    return ring_buffer_read(&drv->RX_buff, byte);
-}
-
-uint16_t USART_send_sequence(s_USART_driver *drv, const uint8_t *data, uint16_t len) {
-    DEBUG_STATIC_CHECK_FALSE_RET(drv, 0);
-    DEBUG_STATIC_CHECK_FALSE_RET(data, 0);
-    DEBUG_STATIC_CHECK_FALSE_RET(len, 0);
-    uint16_t sent = 0;
-    while (sent < len && USART_send(drv, data[sent])) {
-        sent++;
-    }
-    return sent;
-}
-
-uint16_t USART_receive_sequence(s_USART_driver *drv, uint8_t *buf, uint16_t max_len) {
-    DEBUG_STATIC_CHECK_FALSE_RET(drv, 0);
-    DEBUG_STATIC_CHECK_FALSE_RET(buf, 0);
-    DEBUG_STATIC_CHECK_FALSE_RET(max_len, 0);
-    uint16_t read = 0;
-    while (read < max_len && USART_receive(drv, &buf[read])) {
-        read++;
-    }
-    return read;
-}
-
-bool USART_TX_is_busy(s_USART_driver *drv) {
-    DEBUG_STATIC_CHECK_FALSE_RET(drv, false);
-    return !ring_buffer_is_empty(&drv->TX_buff) || drv->TX_active;
-}
-
-uint16_t USART_TX_pending(s_USART_driver *drv) {
-    DEBUG_STATIC_CHECK_FALSE_RET(drv, false);
-    return ring_buffer_count(&drv->TX_buff);
-}
-
-uint16_t USART_RX_available(s_USART_driver *drv) {
-    DEBUG_STATIC_CHECK_FALSE_RET(drv, false);
-    return ring_buffer_count(&drv->RX_buff);
-}
-
-bool USART_flush(s_USART_driver *drv, uint32_t timeout_tick) {
-    DEBUG_STATIC_CHECK_FALSE_RET(drv, false);
-    DEBUG_STATIC_CHECK_FALSE_RET(timeout_tick < (uint32_t)-1, false);
-    for (uint32_t i = 0; i < timeout_tick; i++) {
-        if (!USART_TX_is_busy(drv)) { return true; }
-        MACRO_ASM_DO_NOTHING;
-    }
-    return false;
-}
-
-void USART_clear_RX(s_USART_driver *drv) {
-    DEBUG_STATIC_CHECK_FALSE(drv);
-    ring_buffer_clear(&drv->RX_buff);
-}
-
-void USART_clear_TX(s_USART_driver *drv) {
-    DEBUG_STATIC_CHECK_FALSE(drv);
-    ring_buffer_clear(&drv->TX_buff);
-    drv->TX_active = false;
-    usart_disable_tx_interrupt(get_USART_port_address(drv->port));
-}
-
-static inline bool USART_TX_is_ready(uint32_t status_reg) { // Проверка готовности передачи
-    return status_reg & USART_SR_TXE;
-}
-
-static inline bool USART_RX_is_ready(uint32_t status_reg) { // Проверка готовности приема
-    return status_reg & USART_SR_RXNE;
-}
-
-static inline bool USART_TX_interrupt_enabled(uint32_t usart) { // Проверка включения прерывания передачи
-    return USART_CR1(usart) & USART_CR1_TXEIE;
-}
-
-static inline bool USART_has_errors(uint32_t status_reg) { // Проверка наличия ошибок
-    return status_reg & (USART_SR_ORE | USART_SR_NE | USART_SR_FE | USART_SR_PE);
-}
-
-// SPSC (single producer / single consumer)
-// RX: write - IRQ, read - main
-// TX: write - main, read - IRQ
-static inline void USART_IRQ_handler(s_USART_driver *drv) {
-    DEBUG_STATIC_CHECK_FALSE(drv);
-    const uint32_t usart_addr = get_USART_port_address(drv->port); // Получение адреса порта
-    const uint32_t status_reg = USART_SR(usart_addr); // Чтение регистра статуса
-    
-    if (USART_has_errors(status_reg)) { // Проверка ошибок
-        volatile uint32_t dummy = USART_DR(usart_addr); (void)dummy; // Сброс регистра DR при чтении
-
-        if (drv->stats.is_enabled) { // Логирование ошибок
-            if (status_reg & USART_SR_ORE) { drv->stats.overrun_errors++; }
-            if (status_reg & USART_SR_FE) { drv->stats.framing_errors++; }
-            if (status_reg & USART_SR_PE) { drv->stats.parity_errors++; }
-            if (status_reg & USART_SR_NE) { drv->stats.noise_errors++; }
+        default: {
+            return false;
         }
+    }
 
+    // Настройка параметров обмена
+    usart_set_baudrate(usart, cfg->baudrate);
+    usart_set_databits(usart, 8);
+    usart_set_stopbits(usart, USART_STOPBITS_1);
+    usart_set_parity(usart, USART_PARITY_NONE);
+    usart_set_mode(usart, USART_MODE_TX_RX);
+
+    // Настройка NVIC
+    uint8_t irq = USART_get_IRQ_number(cfg->port);
+    nvic_set_priority(irq, 2);
+    nvic_enable_irq(irq);
+
+    // Включение только прерывания RX на старте
+    usart_enable_rx_interrupt(usart);
+    usart_enable(usart);
+
+    return true;
+}
+
+bool USART_init(USART_driver_t *drv, const USART_config_t *cfg, void *TX_buff, uint16_t TX_size, void *RX_buff, uint16_t RX_size)
+{
+    DEBUG_ASSERT(drv && cfg);         // Проверка указателей
+    DEBUG_ASSERT(TX_buff && TX_size); // Проверка корректности буфера передачи
+    DEBUG_ASSERT(RX_buff && RX_size); // Проверка корректности буфера приема
+
+    drv->port = cfg->port;
+    drv->stats.is_enabled = cfg->enable_stats;
+
+    // Сброс статистики
+    drv->stats.overrun_errors = 0;
+    drv->stats.framing_errors = 0;
+    drv->stats.parity_errors = 0;
+    drv->stats.noise_errors = 0;
+    drv->stats.tx_buffer_overflows = 0;
+    drv->stats.rx_buffer_overflows = 0;
+    drv->stats.tx_idle = 0;
+    drv->stats.rx_idle = 0;
+    drv->stats.isr_calls = 0;
+    drv->stats.bytes_received = 0;
+    drv->stats.bytes_sent = 0;
+
+    if (!USART_register_driver(drv)) { return false; }  // Регистрация драйвера
+    if (!USART_load_config(cfg)) { return false; }      // Загрузка конфигурации
+
+    // Инициализация буферов
+    ring_buffer_init(&drv->TX_buff, TX_buff, TX_size, sizeof(uint8_t));
+    ring_buffer_init(&drv->RX_buff, RX_buff, RX_size, sizeof(uint8_t));
+
+    return true;
+}
+
+bool USART_send(USART_driver_t *drv, uint8_t byte) { // Неблокирующая отправка
+    DEBUG_ASSERT(drv);
+
+    if (!ring_buffer_push(&drv->TX_buff, &byte)) {
+        if (drv->stats.is_enabled) {
+            ++(drv->stats.tx_buffer_overflows);
+        }
+        return false;
+    }
+
+    uint32_t usart_addr = USART_get_port_address(drv->port);
+    usart_enable_tx_interrupt(usart_addr);
+    return true;
+}
+
+
+bool USART_try_send(USART_driver_t *drv, uint8_t byte, uint32_t timeout_tick) { // Попытка неблокирующей отправки, сброс по таймауту
+    DEBUG_ASSERT(drv);
+
+    uint32_t start = SysTick_cnt;
+
+    while (!ring_buffer_push(&drv->TX_buff, &byte)) {
+        if ((SysTick_cnt - start) > timeout_tick) { return false; }
+        ++(drv->stats.tx_idle);
+        MACRO_ASM_DATA_SYNC_BARRIER;
+        MACRO_ASM_WAIT_FOR_INTERRUPT;
+    }
+
+    const uint32_t usart = USART_get_port_address(drv->port);
+    usart_enable_tx_interrupt(usart);
+    return true;
+}
+
+bool USART_receive(USART_driver_t *drv, uint8_t *byte) { // Неблокирующий прием
+    DEBUG_ASSERT(drv && byte);
+    return ring_buffer_pop(&drv->RX_buff, byte);
+}
+
+bool USART_try_receive(USART_driver_t *drv, uint8_t *byte, uint32_t timeout_tick) { // Попытка неблокирующего приема, сброс по таймеру
+    DEBUG_ASSERT(drv && byte);
+
+    uint32_t start = SysTick_cnt;
+
+    while (!ring_buffer_pop(&drv->RX_buff, byte)) {
+        if ((SysTick_cnt - start) > timeout_tick) { return false; }
+        ++(drv->stats.rx_idle);
+        MACRO_ASM_DATA_SYNC_BARRIER;
+        MACRO_ASM_WAIT_FOR_INTERRUPT;
+    }
+
+    return true;
+}
+
+// Обработка прерывания USART
+void USART_IRQ_handler(USART_driver_t *drv) {
+    DEBUG_ASSERT(drv);
+
+    const uint32_t usart_addr = USART_get_port_address(drv->port); // Получение адреса порта
+    const uint32_t sr = USART_SR(usart_addr);
+
+    if(drv->stats.is_enabled) { ++(drv->stats.isr_calls); } // Подсчет прерываний
+
+    if (USART_has_errors(sr)) { // Подсчет ошибок
+        volatile uint32_t dummy = USART_DR(usart_addr); (void)dummy; // Сброс DR в случае ошибки
+
+        if (drv->stats.is_enabled) {
+            if (sr & USART_SR_ORE) drv->stats.overrun_errors++;
+            if (sr & USART_SR_FE) drv->stats.framing_errors++;
+            if (sr & USART_SR_NE) drv->stats.noise_errors++;
+            if (sr & USART_SR_PE) drv->stats.parity_errors++;
+        }
         return;
     }
 
-    if (USART_RX_is_ready(status_reg)) { // Прием
-        uint8_t data = usart_recv(usart_addr);
-        if (!ring_buffer_write(&drv->RX_buff, data)) {
-            if (drv->stats.is_enabled) {
-                drv->stats.overrun_errors++;
+    if (USART_RX_is_ready(sr)) { // RX: байт/прерывание
+        uint8_t byte = usart_recv(usart_addr);
+
+        if (!USART_has_errors(sr)) {
+            if (ring_buffer_push(&drv->RX_buff, &byte)) {
+                if (drv->stats.is_enabled) { drv->stats.bytes_received++; }
             }
-        } else {
-            if (drv->stats.is_enabled) {
-                drv->stats.bytes_received++;
+            else {
+                if (drv->stats.is_enabled) { drv->stats.rx_buffer_overflows++; }
             }
         }
     }
-    
-    if (USART_TX_is_ready(status_reg) && USART_TX_interrupt_enabled(usart_addr)) { // Передача
-        if (!ring_buffer_is_empty(&drv->TX_buff)) {
-            uint8_t data;
-            ring_buffer_read(&drv->TX_buff, &data);
-            usart_send(usart_addr, data);
+
+    if (USART_TX_is_ready(sr)) { // TX: байт/прерывание
+        uint8_t byte;
+        if (ring_buffer_pop(&drv->TX_buff, &byte)) {
+            usart_send(usart_addr, byte);
             if (drv->stats.is_enabled) { drv->stats.bytes_sent++; }
         } else {
-            drv->TX_active = false;
             usart_disable_tx_interrupt(usart_addr);
         }
     }
 }
 
 void USART1_Handler() {
-    DEBUG_STATIC_CHECK_FALSE(USART_driver_list[USART_1]);
+    DEBUG_ASSERT(USART_driver_list[USART_1]);
     USART_IRQ_handler(USART_driver_list[USART_1]);
 }
 
 void USART2_Handler() {
-    DEBUG_STATIC_CHECK_FALSE(USART_driver_list[USART_2]);
+    DEBUG_ASSERT(USART_driver_list[USART_2]);
     USART_IRQ_handler(USART_driver_list[USART_2]);
 }
 
 void USART3_Handler() {
-    DEBUG_STATIC_CHECK_FALSE(USART_driver_list[USART_3]);
+    DEBUG_ASSERT(USART_driver_list[USART_3]);
     USART_IRQ_handler(USART_driver_list[USART_3]);
 }
