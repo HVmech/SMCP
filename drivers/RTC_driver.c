@@ -1,3 +1,5 @@
+#include <drivers/RTC_driver.h>
+
 #include <libopencm3/stm32/rcc.h>
 
 void RTC_init(void) { // Настройка RTC от HSE 8МГц с преобразованием в 72МГц

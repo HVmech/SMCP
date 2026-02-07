@@ -3,36 +3,39 @@
 #ifndef SMCP_LED_SERVICE_H
 #define SMCP_LED_SERVICE_H
 
+#include <core/event.h>
 #include <drivers/LED_driver.h>
 
-#define LED_DURATION_INFINITE ((uint32_t)-1) // Бесконечное время команды
+#define CONST_LED_SERVICE_MAX_LEDS 4 // Максимальное количество управляемых диодов
 
 typedef struct { // Структура команд диода: действие (ВКЛ / ВЫКЛ) и длительность (мс)
     bool action;
     uint32_t duration_ms;
-} s_LED_command;
+} LED_command_t;
 
-typedef struct { // Конфигурационная структура службы диода: массив команд, длина массива, признак циклического повтора
-    const s_LED_command* arr_cmd_seq;
+typedef struct { // Конфигурационная структура службы диода
+    const LED_command_t* arr_cmd_seq;
     uint8_t cmd_seq_length;
-} s_LED_service_config;
+} LED_pattern_t;
 
-typedef struct { // Контрольная структура службы диода: конфигурация, индекс активной команды, стартовое время (мс), признак активации, диод
-    const s_LED_service_config* config;
+typedef struct { // Структура конфигурации командного паттерна
+    const LED_pattern_t* exec_pattern;
+    uint32_t last_change_ms;
     uint8_t curr_indx;
-    uint32_t start_time_ms;
-    bool active;
     bool repeat;
-    s_LED_config led;
-} s_LED_service;
+} LED_exec_config_t;
 
-bool LED_service_init(s_LED_service* instance, const s_LED_service_config* config, e_board_pin pin_code, bool inverted, bool repeat); // Инициализация контрольной структуры
-void LED_service_start(s_LED_service* instance); // Запуск службы
-void LED_service_stop(s_LED_service* instance); // Остановка службы
+typedef struct { // Структура службы диодов
+    LED_t led[CONST_LED_SERVICE_MAX_LEDS];
+    LED_exec_config_t config[CONST_LED_SERVICE_MAX_LEDS];
+    uint8_t led_num;
+} LED_service_t;
 
-bool LED_service_is_running(const s_LED_service* instance); // Проверка состояния службы
-void LED_service_update(s_LED_service* instance); // Обновление службы
-
-void LED_service_execute(s_LED_service* instance, const s_LED_service_config* config, bool repeat); // Выполнение новой команды
+// Основные функции
+bool LED_service_init_led(uint8_t led_id, board_pin_e pin_code, bool inverted); // Инициализация
+void LED_service_execute(uint8_t led_id, const LED_pattern_t* pattern, bool repeat); // Запуск командного паттерна
+void LED_service_set_led_state(uint8_t led_id, bool state); // Установка состояния диода
+void LED_service_update(void); // Обновление конфигурации командных паттернов
+void LED_service_handle_event(const event_t *evt); // Обработчик события управления диодом
 
 #endif // SMCP_LED_SERVICE_H

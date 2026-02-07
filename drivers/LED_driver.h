@@ -7,19 +7,15 @@
 #include <common/types.h>
 #include <common/debug_assert.h>
 
-// Макросы для обозначения состояний диода
-#define LED_ON true
-#define LED_OFF false
-
 typedef struct { // Контрольная структура диода
     // s_MCU_pin?
     uint32_t port;
     uint16_t pin;
     bool inverted;
-} s_LED_config;
+} LED_t;
 
 // Базовые функции
-bool LED_init(e_board_pin pin_code, bool inversion, s_LED_config* out_config); // Инициализация контрольной структуры
-void LED_set(const s_LED_config* config, bool state); // Установка состояния ВКЛ / ВЫКЛ
+bool LED_init(board_pin_e pin_code, bool inversion, LED_t* out_config); // Инициализация контрольной структуры
+void LED_set(const LED_t* config, bool state); // Установка состояния ВКЛ / ВЫКЛ
 
 #endif // SMCP_LED_DRIVER_H

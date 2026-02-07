@@ -9,7 +9,7 @@
 typedef struct { // Структура пина МК
     uint32_t port;
     uint16_t pin;
-} s_MCU_pin;
+} MCU_pin_t;
 
 typedef enum { // Нумерованные пины платы
     PUNUSED = 0, // Не используется
@@ -60,7 +60,7 @@ typedef enum { // Нумерованные пины платы
     PB8 = 45, // PB8 - T4C3 - SCL1 - CANRX
     PB9 = 46, // PB9 - T4C4 - SDA1 - CANTX
     PCNT
-} e_board_pin;
+} board_pin_e;
 
 // Специальные пины платы
 #define PIN_LED_BUILTIN     PC13
@@ -87,6 +87,6 @@ typedef enum { // Нумерованные пины платы
 #define PIN_I2C2_SCL        PB10
 #define PIN_I2C2_SDA        PB11
 
-s_MCU_pin get_MCU_pin(e_board_pin pin); // Определение пина МК по пину платы
+MCU_pin_t get_MCU_pin(board_pin_e pin); // Определение пина МК по пину платы
 
 #endif // SMCP_BOARD_H

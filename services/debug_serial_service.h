@@ -4,6 +4,7 @@
 #define SMCP_DEBUG_SERIAL_SERVICE_H
 
 #include <stdarg.h>
+#include <core/event.h>
 #include <drivers/USART_driver.h>
 #include <common/types.h>
 
@@ -21,7 +22,10 @@ void debug_serial_printf(const char *format, ...); // Форматированн
 bool debug_serial_getchar(uint8_t *ch);
 
 // Утилиты
-void debug_serial_echo_simple(void);
+//void debug_serial_echo_simple(void);
 void serial_print_stats(void);
+
+// События
+void debug_serial_handle_event(const event_t *evt);
 
 #endif // SMCP_DEBUG_SERIAL_SERVICE_H

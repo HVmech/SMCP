@@ -1,7 +1,8 @@
+#include <common/ring_buffer.h>
+
 #include <libopencmsis/core_cm3.h>
 #include <common/asm.h>
 #include <common/utils.h>
-#include <common/ring_buffer.h>
 
 void ring_buffer_init(ring_buffer_t *rb, void *buffer, uint16_t size, uint8_t elem_size) {
     DEBUG_ASSERT(rb && buffer);             // Проверка указателей
@@ -44,4 +45,18 @@ bool ring_buffer_pop(ring_buffer_t *rb, void *data) {
 void ring_buffer_clear(ring_buffer_t *rb) {
     rb->write = 0;
     rb->read = 0;
+}
+
+bool ring_buffer_peek_last(const ring_buffer_t *rb, void *out) {
+    DEBUG_ASSERT(rb); // Проверка указателей
+    DEBUG_ASSERT(rb->buffer); // Проверка инициализации
+
+    if (ring_buffer_is_empty(rb)) { return false; }
+
+    const uint16_t mask = rb->size - 1;
+    const uint16_t index = ((rb->write - 1) & mask);
+
+    memcpy(out, &rb->buffer[index * (uint16_t)rb->elem_size], (uint16_t)rb->elem_size);
+
+    return true;
 }

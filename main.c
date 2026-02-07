@@ -1,61 +1,76 @@
+#include <core/event_bus.h>
+#include <core/event_dispatcher.h>
+#include <core/service_timer.h>
+
 #include <services/debug_serial_service.h>
-#include <services/LED_patterns.h>
 #include <services/LED_service.h>
-#include <drivers/time_driver.h>
+
 #include <drivers/RTC_driver.h>
 #include <drivers/SysTick_driver.h>
+#include <drivers/time_driver.h>
+
+#include <common/ring_buffer.h>
+#include <common/asm.h>
 #include <common/board.h>
 
-s_LED_service g_BUILTIN_LED;
+#include <libopencm3/cm3/nvic.h>
 
-int main(void) {
+#define EVENT_QUEUE_HIGH_SIZE   8
+#define EVENT_QUEUE_NORMAL_SIZE 8
+#define EVENT_QUEUE_LOW_SIZE    8
+
+event_bus_t g_event_bus;
+
+static event_t event_queue_high_storage[EVENT_QUEUE_HIGH_SIZE];
+static event_t event_queue_normal_storage[EVENT_QUEUE_NORMAL_SIZE];
+static event_t event_queue_low_storage[EVENT_QUEUE_LOW_SIZE];
+
+static ring_buffer_t event_queue_high;
+static ring_buffer_t event_queue_low;
+static ring_buffer_t event_queue_normal;
+
+int main(void)
+{
     RTC_init();
     SysTick_init();
+
+    ring_buffer_t *event_queues[EVENT_PRIORITY_NUM] = {
+        &event_queue_high,
+        &event_queue_normal,
+        &event_queue_low
+    };
+
+    ring_buffer_init(&event_queue_high, event_queue_high_storage, EVENT_QUEUE_HIGH_SIZE, sizeof(event_t));
+    ring_buffer_init(&event_queue_normal, event_queue_normal_storage, EVENT_QUEUE_NORMAL_SIZE, sizeof(event_t));
+    ring_buffer_init(&event_queue_low, event_queue_low_storage, EVENT_QUEUE_LOW_SIZE, sizeof(event_t));
+
+    event_bus_init(&g_event_bus, event_queues);
+    event_dispatcher_init(&g_event_bus);
+
+    service_timer_init(20);   // базовый период 20 мс
+
     if (!debug_serial_init(USART_1, 115200, false, true)) { return -1; }
-    if (!LED_service_init(&g_BUILTIN_LED, &LED_pattern_heartbeat, PIN_LED_BUILTIN, true, true)) { return -1; }
 
-    #ifdef DEBUG
+    if (!LED_service_init_led(0, PC13, true)) { return -1; }
+
+    event_bus_subscribe(&g_event_bus, EVENT_LED_SERVICE_UPDATE, LED_service_handle_event);
+
+    event_bus_subscribe(&g_event_bus, EVENT_LED_CONTROL, LED_service_handle_event);
+
+    event_bus_subscribe(&g_event_bus, EVENT_USART1_RX, debug_serial_handle_event);
+
+#ifdef DEBUG
     debug_serial_printf("[%u] DEBUG configuration started\r\n", get_current_time_ms());
-    #endif // DEBUG
-    debug_serial_printf("[%u] System initialized\r\n", get_current_time_ms());
+#endif
 
-    LED_service_start(&g_BUILTIN_LED);
-
-    debug_serial_printf("[%u] System started\r\n", get_current_time_ms());
-
-    // Переменные для отслеживания времени
-    uint32_t last_switch_time = 0;
-    uint32_t last_print_time = 0;
-    uint32_t counter = 0;
-    bool pattern_toggle = false;  // Флаг для переключения между паттернами
+    debug_serial_printf("[%u] System initialized\r\n", get_current_time_ms()); delay_ms(1000); // Отладка
 
     while (1) {
-        LED_service_update(&g_BUILTIN_LED);
-        
-        uint32_t current_time = get_current_time_ms();
-        
-        // Переключение паттернов каждые 12 секунд
-        if (current_time - last_switch_time >= 12000) {
-            last_switch_time = current_time;
-            
-            if (pattern_toggle) {
-                LED_service_execute(&g_BUILTIN_LED, &LED_pattern_blink_500, true);
-                debug_serial_printf("[%u] Switched to blink_500\r\n", current_time);
-            } else {
-                LED_service_execute(&g_BUILTIN_LED, &LED_pattern_SOS, true);
-                debug_serial_printf("[%u] Switched to SOS\r\n", current_time);
-            }
-            
-            pattern_toggle = !pattern_toggle;  // Чередование паттернов
+        if (event_dispatcher_process()) {
+            debug_serial_printf("[%u] EVENT PROCESSED\n", g_SysTick_cnt);
         }
-
-        debug_serial_echo_simple();
-        
-        // Вывод статуса каждую секунду (опционально)
-        if (current_time - last_print_time >= 1000) {
-            last_print_time = current_time;
-            debug_serial_printf("[%u] Uptime: %u sec, Counter: %u\r\n", current_time, current_time / 1000, counter++);
-            serial_print_stats();
+        else {
+            MACRO_ASM_DO_NOTHING;
         }
     }
 

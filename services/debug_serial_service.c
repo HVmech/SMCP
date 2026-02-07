@@ -1,10 +1,17 @@
 #include <services/debug_serial_service.h>
+#include <globals/USART_globals.h>
+#include <core/event_dispatcher.h>
+#include <services/command_parser.h>
+//#include <drivers/time_driver.h>
 #include <common/debug_assert.h>
 
 // Статические буферы
 #define DEBUG_TX_BUFFER_SIZE 128
 #define DEBUG_RX_BUFFER_SIZE 64
+#define SERIAL_CMD_BUFFER_SIZE 64   // можно потом вынести в конфиг
 
+static char serial_cmd_buffer[SERIAL_CMD_BUFFER_SIZE];
+static uint16_t serial_cmd_len = 0;
 static const char *hex = "0123456789ABCDEF";
 
 static USART_driver_t serial_USART_driver;
@@ -22,7 +29,17 @@ bool debug_serial_init(USART_port_e port, uint32_t baudrate, bool remap, bool en
     cfg.enable_stats = enable_stats;
     
     initialized = USART_init(&serial_USART_driver, &cfg, TX_buffer, DEBUG_TX_BUFFER_SIZE, RX_buffer, DEBUG_RX_BUFFER_SIZE);
-    return initialized;
+    if (!initialized) { return false; }
+
+    event_bus_t *bus = event_dispatcher_get_bus();
+    DEBUG_ASSERT(bus);
+
+    event_bus_subscribe(bus, EVENT_USART1_RX, debug_serial_handle_event);
+    event_bus_subscribe(bus, EVENT_USART2_RX, debug_serial_handle_event);
+    event_bus_subscribe(bus, EVENT_USART3_RX, debug_serial_handle_event);
+    serial_cmd_len = 0;
+
+    return true;
 }
 
 void debug_serial_putchar(char ch) {
@@ -150,18 +167,6 @@ bool debug_serial_getchar(uint8_t *ch) { // Чтение символа
     return USART_receive(&serial_USART_driver, ch);
 }
 
-void debug_serial_echo_simple(void) {
-    DEBUG_ASSERT(initialized);
-    
-    static uint8_t ch;
-    if (debug_serial_getchar(&ch)) { // Проверка получения символа
-        debug_serial_putchar(ch);
-        if (ch == '\r') {
-            debug_serial_putchar('\n');
-        }
-    }
-}
-
 void serial_print_stats(void) {
     debug_serial_printf("Serial stats:\r\n");
     debug_serial_printf("B R/S: %u %u, E F/N/P/O: %u %u %u %u, O T/R: %u %u, I T/R: %u %u, ISR: %u\r\n",
@@ -177,4 +182,67 @@ void serial_print_stats(void) {
         serial_USART_driver.stats.rx_idle,
         serial_USART_driver.stats.isr_calls
     );
+}
+
+void debug_serial_handle_event(const event_t *evt) {
+    if (evt->id < EVENT_USART1_RX || evt->id > EVENT_USART3_RX) {
+        return;
+    }
+
+    USART_port_e port = (USART_port_e)(evt->id - EVENT_USART1_RX);
+    uint8_t byte;
+
+    // Читаем все доступные байты из RX буфера
+    while (USART_receive(&serial_USART_driver, &byte)) {
+
+        // Игнорируем '\r'
+        if (byte == '\r') {
+            continue;
+        }
+
+        // Если конец строки
+        if (byte == '\n') {
+
+            // Завершаем строку
+            if (serial_cmd_len < SERIAL_CMD_BUFFER_SIZE) {
+                serial_cmd_buffer[serial_cmd_len] = '\0';
+            }
+
+            // Вызываем парсер
+            bool ok = command_parser_parse_and_post(
+                event_dispatcher_get_bus(),
+                serial_cmd_buffer
+            );
+
+            if (!ok) {
+                debug_serial_puts("Error: invalid command\r\n");
+            }
+
+            // Сбрасываем буфер для следующей команды
+            serial_cmd_len = 0;
+
+            // Сбрасываем флаг ожидания для этого USART
+            g_usart_rx_pending[port] = false;
+            return;
+        }
+
+        // Обычный символ — добавляем в буфер
+        if (serial_cmd_len < SERIAL_CMD_BUFFER_SIZE - 1) {
+            serial_cmd_buffer[serial_cmd_len++] = (char)byte;
+        }
+        else {
+            // ПЕРЕПОЛНЕНИЕ БУФЕРА КОМАНДЫ
+            serial_cmd_len = 0;
+
+            // Очищаем RX буфер полностью
+            uint8_t tmp;
+            while (USART_receive(&serial_USART_driver, &tmp)) {}
+
+            debug_serial_puts("Error: command too long\r\n");
+
+            // Сбрасываем флаг и выходим
+            g_usart_rx_pending[port] = false;
+            return;
+        }
+    }
 }

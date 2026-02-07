@@ -37,4 +37,7 @@ bool ring_buffer_push(ring_buffer_t *rb, const void *data);
 bool ring_buffer_pop(ring_buffer_t *rb, void *data);
 void ring_buffer_clear(ring_buffer_t *rb);
 
+// Вспомогательные функции:
+bool ring_buffer_peek_last(const ring_buffer_t *rb, void *out); // Просмотр последнего элемента
+
 #endif // SMCP_RING_BUFFER_H

@@ -1,4 +1,3 @@
-#include <common/debug_assert.h>
 #include <libopencm3/cm3/cortex.h>
 #include <common/asm.h>
 

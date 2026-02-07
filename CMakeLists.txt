@@ -14,6 +14,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(SMCP C ASM)
 
+file(GLOB CORE_SOURCES
+    "core/*.c"
+    "core/*.cpp"
+)
+file(GLOB GLOBALS_SOURCES
+    "globals/*.c"
+    "globals/*.cpp"
+)
 file(GLOB SERVICES_SOURCES
     "services/*.c"
     "services/*.cpp"
@@ -30,9 +38,11 @@ file(GLOB COMMON_SOURCES
 set(SOURCES
     startup.s
     main.c
-    ${COMMON_SOURCES}
-    ${DRIVERS_SOURCES}
+    ${CORE_SOURCES}
+    ${GLOBALS_SOURCES}
     ${SERVICES_SOURCES}
+    ${DRIVERS_SOURCES}
+    ${COMMON_SOURCES}
 )
 
 add_executable(${PROJECT_NAME}.elf ${SOURCES})

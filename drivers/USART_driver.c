@@ -1,14 +1,22 @@
+#include <drivers/USART_driver.h>
+
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/usart.h>
 #include <libopencm3/cm3/common.h>
 #include <libopencm3/cm3/nvic.h>
 
-#include <drivers/USART_driver.h>
+#include <globals/USART_globals.h>
+
+#include <core/service_timer.h>
+
 #include <drivers/SysTick_driver.h>
 
 #include <common/debug_assert.h>
 #include <common/asm.h>
+
+#include <services/debug_serial_service.h>
+#include <drivers/time_driver.h>
 
 static const uint32_t USART_port_map[USART_CNT] = {USART1, USART2, USART3};
 static const uint8_t USART_IRQ_map[USART_CNT] = {NVIC_USART1_IRQ, NVIC_USART2_IRQ, NVIC_USART3_IRQ};
@@ -110,7 +118,7 @@ static inline bool USART_load_config(const USART_config_t *cfg) {
 
     // Настройка NVIC
     uint8_t irq = USART_get_IRQ_number(cfg->port);
-    nvic_set_priority(irq, 2);
+    nvic_set_priority(irq, 5);
     nvic_enable_irq(irq);
 
     // Включение только прерывания RX на старте
@@ -171,10 +179,10 @@ bool USART_send(USART_driver_t *drv, uint8_t byte) { // Неблокирующа
 bool USART_try_send(USART_driver_t *drv, uint8_t byte, uint32_t timeout_tick) { // Попытка неблокирующей отправки, сброс по таймауту
     DEBUG_ASSERT(drv);
 
-    uint32_t start = SysTick_cnt;
+    uint32_t start = g_SysTick_cnt;
 
     while (!ring_buffer_push(&drv->TX_buff, &byte)) {
-        if ((SysTick_cnt - start) > timeout_tick) { return false; }
+        if ((g_SysTick_cnt - start) > timeout_tick) { return false; }
         ++(drv->stats.tx_idle);
         MACRO_ASM_DATA_SYNC_BARRIER;
         MACRO_ASM_WAIT_FOR_INTERRUPT;
@@ -193,10 +201,10 @@ bool USART_receive(USART_driver_t *drv, uint8_t *byte) { // Неблокирую
 bool USART_try_receive(USART_driver_t *drv, uint8_t *byte, uint32_t timeout_tick) { // Попытка неблокирующего приема, сброс по таймеру
     DEBUG_ASSERT(drv && byte);
 
-    uint32_t start = SysTick_cnt;
+    uint32_t start = g_SysTick_cnt;
 
     while (!ring_buffer_pop(&drv->RX_buff, byte)) {
-        if ((SysTick_cnt - start) > timeout_tick) { return false; }
+        if ((g_SysTick_cnt - start) > timeout_tick) { return false; }
         ++(drv->stats.rx_idle);
         MACRO_ASM_DATA_SYNC_BARRIER;
         MACRO_ASM_WAIT_FOR_INTERRUPT;
@@ -232,6 +240,12 @@ void USART_IRQ_handler(USART_driver_t *drv) {
         if (!USART_has_errors(sr)) {
             if (ring_buffer_push(&drv->RX_buff, &byte)) {
                 if (drv->stats.is_enabled) { drv->stats.bytes_received++; }
+
+                if (!g_usart_rx_pending[drv->port]) {
+                    g_usart_rx_pending[drv->port] = true;
+                    //debug_serial_printf("[%u] ITA\n", get_current_time_ms());
+                    service_timer_enable();
+                }
             }
             else {
                 if (drv->stats.is_enabled) { drv->stats.rx_buffer_overflows++; }
