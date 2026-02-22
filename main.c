@@ -1,9 +1,11 @@
+#include "core/event.h"
 #include <core/event_bus.h>
 #include <core/event_dispatcher.h>
 #include <core/service_timer.h>
 
 #include <services/debug_serial_service.h>
 #include <services/LED_service.h>
+#include <services/motion_controller_service.h>
 
 #include <drivers/RTC_driver.h>
 #include <drivers/SysTick_driver.h>
@@ -29,6 +31,19 @@ static ring_buffer_t event_queue_high;
 static ring_buffer_t event_queue_low;
 static ring_buffer_t event_queue_normal;
 
+void motor_test_helper_handler(const event_t *evt_inp) {
+    if (evt_inp->id != EVENT_MOTOR_ROTATION_PREPARE) { return; }
+
+    event_t evt = {0};
+    evt.id = EVENT_MOTOR_PREPARATION_COMPLETE;
+    evt.priority = EVENT_PRIORITY_HIGH;
+    evt.flags = EVENT_FLAG_NONE;
+    evt.timestamp = g_SysTick_cnt;
+
+    event_bus_t *bus = event_dispatcher_get_bus();
+    event_bus_post(bus, &evt);
+}
+
 int main(void)
 {
     RTC_init();
@@ -49,15 +64,21 @@ int main(void)
 
     service_timer_init(20);   // базовый период 20 мс
 
-    if (!debug_serial_init(USART_1, 115200, false, true)) { return -1; }
+    if (!debug_serial_init(USART_1, 115200, true, true)) { return -1; }
 
-    if (!LED_service_init_led(0, PC13, true)) { return -1; }
+    LED_service_init_led(0, PC13, true);
 
-    event_bus_subscribe(&g_event_bus, EVENT_LED_SERVICE_UPDATE, LED_service_handle_event);
+    motion_controller_init(PA9, PA10);
+
+    //event_bus_subscribe(&g_event_bus, EVENT_LED_SERVICE_UPDATE, LED_service_handle_event);
 
     event_bus_subscribe(&g_event_bus, EVENT_LED_CONTROL, LED_service_handle_event);
 
     event_bus_subscribe(&g_event_bus, EVENT_USART1_RX, debug_serial_handle_event);
+
+    event_bus_subscribe(&g_event_bus, EVENT_MOTOR_ROTATION_PREPARE, motor_test_helper_handler);
+
+    //event_bus_subscribe(&g_event_bus, EVENT_PWM_CHANGE_PRESCALER, pwm_handle_event);
 
 #ifdef DEBUG
     debug_serial_printf("[%u] DEBUG configuration started\r\n", get_current_time_ms());
@@ -67,7 +88,7 @@ int main(void)
 
     while (1) {
         if (event_dispatcher_process()) {
-            debug_serial_printf("[%u] EVENT PROCESSED\n", g_SysTick_cnt);
+            // nothing
         }
         else {
             MACRO_ASM_DO_NOTHING;

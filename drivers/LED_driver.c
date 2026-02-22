@@ -6,9 +6,6 @@
 bool LED_init(board_pin_e pin_code, bool inversion, LED_t* out_config) {
     DEBUG_ASSERT(out_config);
     MCU_pin_t pin_info = get_MCU_pin(pin_code); // Определение пина МК
-#ifdef DEBUG
-    if (pin_info.port == 0 || pin_info.pin == 0) { return false; } // Проверка корректности пина
-#endif
     DEBUG_ASSERT(pin_info.port && pin_info.pin);
     // Заполняем выходную структуру
     out_config->port = pin_info.port;

@@ -22,25 +22,24 @@ bool event_dispatcher_process() {
     DEBUG_ASSERT(dispatcher.bus);
 
     event_bus_t *bus = dispatcher.bus;
-    event_t evt;
-    (void)evt;
-    (void)bus;
+    event_t evt = {0};
+    bool result = false;
 
      // Активация событий по приоритетам: HIGH -> NORMAL -> LOW
     if (bus->queues[EVENT_PRIORITY_HIGH] && ring_buffer_pop(bus->queues[EVENT_PRIORITY_HIGH], &evt)) { // HIGH
         event_bus_invoke(bus, &evt);
-        return true;
+        result = true;
     }
-
-    if (bus->queues[EVENT_PRIORITY_NORMAL] && ring_buffer_pop(bus->queues[EVENT_PRIORITY_NORMAL], &evt)) { // NORMAL
+    else if (bus->queues[EVENT_PRIORITY_NORMAL] && ring_buffer_pop(bus->queues[EVENT_PRIORITY_NORMAL], &evt)) { // NORMAL
         event_bus_invoke(bus, &evt);
-        return true;
+        result = true;
     }
-
-    if (bus->queues[EVENT_PRIORITY_LOW] && ring_buffer_pop(bus->queues[EVENT_PRIORITY_LOW], &evt)) { // LOW
+    else if (bus->queues[EVENT_PRIORITY_LOW] && ring_buffer_pop(bus->queues[EVENT_PRIORITY_LOW], &evt)) { // LOW
         event_bus_invoke(bus, &evt);
-        return true;
+        result = true;
     }
 
-    return false; // Все очереди пусты
+    if (result) { debug_serial_printf("[%u] EVENT PROCESSED: %d\n", evt.id, g_SysTick_cnt); }
+
+    return result; // Все очереди пусты
 }

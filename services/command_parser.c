@@ -1,3 +1,4 @@
+#include <drivers/SysTick_driver.h>
 #include <services/command_parser.h>
 #include <core/event.h>
 #include <services/LED_service.h>
@@ -15,52 +16,102 @@ static inline bool str_equal(const char *a, const char *b) {
 
 bool command_parser_parse_and_post(event_bus_t *bus, const char *cmd) {
     DEBUG_ASSERT(bus && cmd);
+    event_t evt;
+
+    uint16_t cmd_len = 0;
+    while (cmd[cmd_len] != '\0') {
+        ++cmd_len;
+    }
 
     // Ищем начало команды "led"
-    if (cmd[0] != 'l' || cmd[1] != 'e' || cmd[2] != 'd' || cmd[3] != ' ') {
-        return false;
+    if (cmd_len > 4 && cmd[0] == 'l' && cmd[1] == 'e' && cmd[2] == 'd' && cmd[3] == ' ') {
+
+        // Пропускаем "led "
+        const char *p = cmd + 4;
+
+        // Читаем номер LED
+        if (!is_digit(*p)) {
+            return false;
+        }
+
+        uint8_t led_id = (uint8_t)(*p - '0');
+        ++p;
+
+        // Должен быть пробел
+        if (*p != ' ') {
+            return false;
+        }
+        ++p;
+
+        // Определяем действие
+        bool state;
+
+        if (str_equal(p, "on")) {
+            state = true;
+        }
+        else if (str_equal(p, "off")) {
+            state = false;
+        }
+        else {
+            return false;
+        }
+
+        // Формируем событие
+        evt.id = EVENT_LED_CONTROL;
+        evt.priority = EVENT_PRIORITY_NORMAL;
+        evt.flags = EVENT_FLAG_NONE;
+        evt.timestamp = g_SysTick_cnt;
+
+        evt.payload.type = EVENT_DATA_UNSIGNED;
+        evt.payload.data.unsigned_value = ((uint32_t)led_id << 1) | (state ? 1U : 0U);
     }
+    else if (cmd_len > 5 && cmd[0] == 't' && cmd[1] == 'e' && cmd[2] == 's' && cmd[3] == 't' && cmd[4] == ' ') {
+        const char *p = cmd + 5;
 
-    // Пропускаем "led "
-    const char *p = cmd + 4;
+        int32_t f = 0;
+        uint8_t i = 0;
 
-    // Читаем номер LED
-    if (!is_digit(*p)) {
-        return false;
+        do {
+            if (!is_digit(*p)) { break; }
+            f = f * 10 + (uint32_t)(*p - '0');
+            ++p;
+            ++i;
+        } while(i < 7);
+
+        if (f == 0) { return false; }
+
+        // Формируем событие
+        evt.id = EVENT_MOTOR_ROTATION_TEST_REQUEST;
+        evt.priority = EVENT_PRIORITY_NORMAL;
+        evt.flags = EVENT_FLAG_NONE;
+        evt.timestamp = g_SysTick_cnt;
+
+        evt.payload.type = EVENT_DATA_SIGNED;
+        evt.payload.data.signed_value = f;
     }
+    /*else if (cmd[0] == 'p' && cmd[1] == 'r' && cmd[2] == 's' && cmd[3] == 'c' && cmd[4] == ' ') {
+        const char *p = cmd + 5;
 
-    uint8_t led_id = (uint8_t)(*p - '0');
-    ++p;
+        uint16_t prescaler = 0;
+        uint8_t i = 0;
+        do {
+            if (!is_digit(*p)) { break; }
+            prescaler = prescaler * 10 + (uint16_t)(*p - '0');
+            ++p;
+            ++i;
+        } while(i < 16);
 
-    // Должен быть пробел
-    if (*p != ' ') {
-        return false;
-    }
-    ++p;
+        if (prescaler == 0) { return false; }
 
-    // Определяем действие
-    bool state;
+        // Формируем событие
+        evt.id = EVENT_PWM_CHANGE_PRESCALER;
+        evt.priority = EVENT_PRIORITY_NORMAL;
+        evt.flags = EVENT_FLAG_NONE;
+        evt.timestamp = g_SysTick_cnt;
 
-    if (str_equal(p, "on")) {
-        state = true;
-    }
-    else if (str_equal(p, "off")) {
-        state = false;
-    }
-    else {
-        return false;
-    }
-
-    // Формируем событие
-    event_t evt = {
-        .id = EVENT_LED_CONTROL,
-        .priority = EVENT_PRIORITY_NORMAL,
-        .flags = EVENT_FLAG_NONE,
-        .timestamp = 0
-    };
-
-    evt.payload.type = EVENT_DATA_UNSIGNED;
-    evt.payload.data.unsigned_value = ((uint32_t)led_id << 1) | (state ? 1U : 0U);
-
+        evt.payload.type = EVENT_DATA_UNSIGNED;
+        evt.payload.data.unsigned_value = (uint32_t)prescaler;
+    }*/
+    else { return false; }
     return event_bus_post(bus, &evt);
 }
