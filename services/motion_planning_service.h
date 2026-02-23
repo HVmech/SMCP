@@ -7,7 +7,7 @@
 #define SYSTEM_PUL_MAX_FREQ_HZ (5.0 * DRIVER_PUL_MAX_FREQ_HZ / 8.0) // Практический потолок частоты (DM860A)
 #define MOTOR_FULL_STEPS_PER_REV 200 // Кол-во шагов за оборот
 #define DRIVER_MICROSTEP 256 // Делитель драйвера
-#define GEARBOX_RATIO  1 // Передаточное число редуктора     
+#define GEARBOX_RATIO  50 // Передаточное число редуктора     
 #define STEP_ANGLE_DEG (360.0 / (MOTOR_FULL_STEPS_PER_REV * DRIVER_MICROSTEP * GEARBOX_RATIO)) // Угол за один импульс
 
 #define START_FREQ_HZ 500.0 // Стартовая частота импульсов

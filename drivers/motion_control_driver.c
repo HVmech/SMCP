@@ -23,7 +23,7 @@ bool motion_control_init(board_pin_e dir_pin, board_pin_e ena_pin) {
         case GPIOC: { rcc_periph_clock_enable(RCC_GPIOC); break; }
         default: { return false; }
     }
-    gpio_set_mode(ena_pin_info.port, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_OPENDRAIN, ena_pin_info.pin);
+    gpio_set_mode(ena_pin_info.port, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, ena_pin_info.pin);
 
     switch (dir_pin_info.port) { // Включение тактирования соответствующего порта для пина dir
         case GPIOA: { rcc_periph_clock_enable(RCC_GPIOA); break; }
@@ -31,13 +31,13 @@ bool motion_control_init(board_pin_e dir_pin, board_pin_e ena_pin) {
         case GPIOC: { rcc_periph_clock_enable(RCC_GPIOC); break; }
         default: { return false; }
     }
-    gpio_set_mode(dir_pin_info.port, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_OPENDRAIN, dir_pin_info.pin);
+    gpio_set_mode(dir_pin_info.port, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, dir_pin_info.pin);
 
     return true;
 }
 
 void set_motion_control_enable(bool state) {
-    if (state) {
+    if (!state) {
         gpio_clear(ena_pin_info.port, ena_pin_info.pin);
     } else {
         gpio_set(ena_pin_info.port, ena_pin_info.pin);
@@ -45,7 +45,7 @@ void set_motion_control_enable(bool state) {
 }
 
 void set_motion_control_direction(bool direction) {
-    if (direction) {
+    if (!direction) {
         gpio_clear(dir_pin_info.port, dir_pin_info.pin);
     } else {
         gpio_set(dir_pin_info.port, dir_pin_info.pin);

@@ -1,3 +1,4 @@
+//#include <drivers/time_driver.h>
 #include <services/motion_planning_service.h>
 #include <services/debug_serial_service.h>
 #include <common/debug_assert.h>
@@ -6,9 +7,9 @@ const uint32_t f_update = 10000;
 const uint32_t f_clk = 72000000;
 const uint32_t pwm_prescaler = 36;
 
-const uint32_t v_min = 1000;
-const uint32_t v_max = 150000;
-const uint32_t a_max = 5000;
+const uint32_t v_min = 500;
+const uint32_t v_max = 100000;
+const uint32_t a_max = 300;
 const uint32_t j_max = 1;
 
 const uint32_t f_tim = f_clk / pwm_prescaler; // Частота обновления таймера
@@ -64,14 +65,16 @@ motion_block_t plan_motion(uint32_t total_steps, bool direction) {
     result.motion_phases[PHASE_J1].ddf0 = ddf;
 
     debug_serial_printf("Phase J1:\r\n");
-    while (df + ddf <= df_max) {
+    const int32_t f_max_div_2 = f_max >> 1;
+    while (df + ddf <= df_max && f + df <= f_max_div_2) {
         if (Nj * 4 >= total_updates) { break; }
 
         f  += df;
         df += ddf;
         ++Nj;
-        debug_serial_printf("[Step %d]: f = %d, df = %d, ddf = %d\r\n", Nj, f, df, ddf);
     }
+    debug_serial_printf("[Step %d]: f = %d, df = %d, ddf = %d\r\n", Nj, f, df, ddf);
+
     if (df > df_max) { df = df_max; }
 
     result.motion_phases[PHASE_J1].update_steps = Nj;
@@ -93,8 +96,9 @@ motion_block_t plan_motion(uint32_t total_steps, bool direction) {
 
         f += df;
         ++Na;
-        debug_serial_printf("[Step %d]: f = %d, df = %d, ddf = %d\r\n", Na, f, df, ddf);
     }
+
+    debug_serial_printf("[Step %d]: f = %d, df = %d, ddf = %d\r\n", Na, f, df, ddf);
 
     result.motion_phases[PHASE_A1].update_steps = Na;
 
@@ -112,8 +116,8 @@ motion_block_t plan_motion(uint32_t total_steps, bool direction) {
     for (uint32_t i = 0; i < Nj; ++i) {
         f  += df;
         df += ddf;
-        debug_serial_printf("[Step %d]: f = %d, df = %d, ddf = %d\r\n", i, f, df, ddf);
     }
+    debug_serial_printf("[Step %d]: f = %d, df = %d, ddf = %d\r\n", Nj, f, df, ddf);
 
     DEBUG_ASSERT(f <= f_max); // Проверка соблюдения ограничений
     DEBUG_ASSERT(df == 0); // Проверка схождения расчета
@@ -149,8 +153,8 @@ motion_block_t plan_motion(uint32_t total_steps, bool direction) {
     for (uint32_t i = 0; i < Nj; ++i) {
         f += df;
         df += ddf;
-        debug_serial_printf("[Step %d]: f = %d, df = %d, ddf = %d\r\n", i, f, df, ddf);
     }
+    debug_serial_printf("[Step %d]: f = %d, df = %d, ddf = %d\r\n", Nj, f, df, ddf);
 
     // 6. Расчет фазы A2: Движение с постоянным торможением
     // f = f
@@ -166,8 +170,8 @@ motion_block_t plan_motion(uint32_t total_steps, bool direction) {
     debug_serial_printf("Phase A2:\r\n");
     for (uint32_t i = 0; i < Na; ++i) {
         f += df;
-        debug_serial_printf("[Step %d]: f = %d, df = %d, ddf = %d\r\n", i, f, df, ddf);
     }
+    debug_serial_printf("[Step %d]: f = %d, df = %d, ddf = %d\r\n", Na, f, df, ddf);
 
     // 7. Расчет фазы J4: Движение с убывающим торможением
     // f = f
@@ -184,8 +188,8 @@ motion_block_t plan_motion(uint32_t total_steps, bool direction) {
     for (uint32_t i = 0; i < Nj; ++i) {
         f = f + df;
         df = df + ddf;
-        debug_serial_printf("[Step %d]: f = %d, df = %d, ddf = %d\r\n", i, f, df, ddf);
     }
+    debug_serial_printf("[Step %d]: f = %d, df = %d, ddf = %d\r\n", Nj, f, df, ddf);
 
     // Проверки сходимости расчета
     DEBUG_ASSERT(f == f_min);
