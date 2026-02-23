@@ -8,6 +8,11 @@
 
 #define CONST_LED_SERVICE_MAX_LEDS 4 // Максимальное количество управляемых диодов
 
+typedef enum {
+    LED_BUILTIN = 0,
+    LED_MOTOR_STOP_BUTTON
+} LED_id_t;
+
 typedef struct { // Структура команд диода: действие (ВКЛ / ВЫКЛ) и длительность (мс)
     bool action;
     uint32_t duration_ms;

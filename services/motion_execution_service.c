@@ -1,4 +1,5 @@
-#include "services/motion_planning_service.h"
+#include "services/debug_serial_service.h"
+#include <services/motion_planning_service.h>
 #include <services/motion_execution_service.h>
 
 #include <core/event_dispatcher.h>
@@ -21,6 +22,8 @@ static motion_executor_config_t config = {0};
 
 const uint32_t CONST_ENA_DELAY_TIME_MS = 10;
 const uint32_t CONST_DIR_DELAY_TIME_MS = 1;
+
+static volatile uint32_t glob_flag = 0;
 
 // ======= Вспомогательные функции =======
 
@@ -91,12 +94,19 @@ void motion_executor_start(motion_block_t* block) { // Запуск выполн
 
     config.current_phase = PHASE_J1; // Установка первой фазы
     motion_phase_t* phase_handler = &config.current_block.motion_phases[config.current_phase]; // Загружаемая фаза
+
+    debug_serial_printf("dir = %d, tail = %d\r\n", config.current_block.direction, config.current_block.tail_phase);
+    for (uint8_t i = 0; i < PHASE_COUNT; ++i) {
+        debug_serial_printf("upd = %d, f0 = %d, df0 = %d, ddf0 = %d\r\n", config.current_block.motion_phases[i].update_steps, config.current_block.motion_phases[i].f0, config.current_block.motion_phases[i].df0, config.current_block.motion_phases[i].ddf0);
+    }
     
     while (phase_handler->update_steps == 0) {
         if (config.current_phase > PHASE_TAIL) { return; }
         ++config.current_phase;
         phase_handler = &config.current_block.motion_phases[config.current_phase]; // Загружаемая фаза
     }
+
+    debug_serial_printf("loaded_phase = %d\r\n", config.current_phase);
     
     // Копирование стартовых параметров
     config.f = phase_handler->f0;
@@ -126,6 +136,8 @@ void motion_executor_stop(void) { // Программная остановка �
     set_motion_control_enable(false); // Отключение двигателя
 
     config.is_running = false;
+
+    debug_serial_printf("upds = %u\r\n", glob_flag);
 }
 
 //bool motion_executor_is_running(void) { return config.is_running; }
@@ -166,6 +178,8 @@ void TIM1_UP_Handler(void) { // Прерывание обновления фаз
 
     // 4. Загрузка следующей фазы, если необходимо
     if (config.phase_steps_left == 0) { load_next_phase(); }
+
+    ++glob_flag;
 }
 
 void TIM1_BRK_Handler(void) { // Прерывание аварийной остановки

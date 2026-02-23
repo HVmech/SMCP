@@ -1,3 +1,4 @@
+#include "libopencm3/stm32/f1/nvic.h"
 #include <drivers/step_timer_driver.h>
 
 #include <common/debug_assert.h>
@@ -17,6 +18,8 @@ void step_timer_init(const step_timer_config_t *cfg) {
     timer_disable_counter(TIM1);
     nvic_disable_irq(NVIC_TIM1_UP_IRQ); // Отключение прерываний по таймеру
     nvic_disable_irq(NVIC_TIM1_BRK_IRQ); // Отключение прерывания остановки
+    nvic_set_priority(NVIC_TIM1_UP_IRQ, 2);
+    nvic_set_priority(NVIC_TIM1_BRK_IRQ, 1);
 
     if (!is_initialized) {
         // Включение тактирования GPIO и TIM1
@@ -108,4 +111,5 @@ void step_timer_reset_breakup_flag(void) {
 
 void step_timer_update_timer(void) {
     timer_generate_event(TIM1, TIM_EGR_UG);
+    timer_clear_flag(TIM1, TIM_SR_UIF);
 }

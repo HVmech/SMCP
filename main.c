@@ -78,8 +78,6 @@ int main(void)
 
     event_bus_subscribe(&g_event_bus, EVENT_MOTOR_ROTATION_PREPARE, motor_test_helper_handler);
 
-    //event_bus_subscribe(&g_event_bus, EVENT_PWM_CHANGE_PRESCALER, pwm_handle_event);
-
 #ifdef DEBUG
     debug_serial_printf("[%u] DEBUG configuration started\r\n", get_current_time_ms());
 #endif

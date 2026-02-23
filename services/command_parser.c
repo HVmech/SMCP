@@ -89,6 +89,35 @@ bool command_parser_parse_and_post(event_bus_t *bus, const char *cmd) {
         evt.payload.type = EVENT_DATA_SIGNED;
         evt.payload.data.signed_value = f;
     }
+    else if (cmd_len > 7 && cmd[0] == 'r' && cmd[1] == 'o' && cmd[2] == 't' && cmd[3] == 'a' && cmd[4] == 't' && cmd[5] == 'e' && cmd[6] == ' ') {
+        const char *p = cmd + 7;
+
+        int32_t angle = 0;
+        uint8_t i = 0;
+        bool direction = true;
+
+        if (*p == '-') { direction = false; ++p; }
+
+        do {
+            if (!is_digit(*p)) { break; }
+            angle = angle * 10 + (uint32_t)(*p - '0');
+            ++p;
+            ++i;
+        } while(i < 10);
+
+        if (angle == 0) { return false; }
+
+        angle = direction ? angle : (-1 * angle);
+
+        // Формируем событие
+        evt.id = EVENT_MOTOR_ROTATION_REQUEST;
+        evt.priority = EVENT_PRIORITY_NORMAL;
+        evt.flags = EVENT_FLAG_NONE;
+        evt.timestamp = g_SysTick_cnt;
+
+        evt.payload.type = EVENT_DATA_SIGNED;
+        evt.payload.data.signed_value = angle;
+    }
     /*else if (cmd[0] == 'p' && cmd[1] == 'r' && cmd[2] == 's' && cmd[3] == 'c' && cmd[4] == ' ') {
         const char *p = cmd + 5;
 

@@ -1,7 +1,6 @@
 #include <services/motion_planning_service.h>
 #include <services/debug_serial_service.h>
 
-
 #include <core/event_dispatcher.h>
 #include <core/event_bus.h>
 
@@ -11,15 +10,42 @@
 #include <drivers/SysTick_driver.h>
 
 #include <common/debug_assert.h>
+#include <stdint.h>
 
 static motion_controller_state_t controller = {0};
 
-static inline uint32_t angle_to_steps(int32_t angle) {
-    uint32_t abs_angle = (angle >= 0) ? angle : -angle;
+static inline uint32_t angle_to_steps(int32_t angle_input) {
+    const uint32_t abs_angle = (angle_input >= 0) ? angle_input : -angle_input;
 
-    uint64_t steps = MOTOR_FULL_STEPS_PER_REV * DRIVER_MICROSTEP * GEARBOX_RATIO * abs_angle / (360 * 10000);
+    const uint32_t steps_per_rev = MOTOR_FULL_STEPS_PER_REV * DRIVER_MICROSTEP * GEARBOX_RATIO;
 
-    return (uint32_t)steps;
+    uint8_t precision = 4;
+    uint32_t div = 10;
+
+    for (uint8_t i = 0; i < precision; ++i) {
+        div *= 10;
+    }
+
+    uint32_t mul1 = steps_per_rev;
+    uint32_t mul2 = abs_angle;
+
+    while (mul1 % 10 == 0 && mul1 && (div % 10) == 0 && div) {
+        mul1 /= 10;
+        div /= 10;
+    }
+
+    while (mul2 % 10 == 0 && mul2 && (div % 10) == 0 && div) {
+        mul2 /= 10;
+        div /= 10;
+    }
+
+    debug_serial_printf("mul1 = %u\r\n", mul1);
+    debug_serial_printf("mul2 = %u\r\n", mul2);
+    debug_serial_printf("div = %u\r\n", div);
+
+    const uint32_t steps = mul1 * mul2 / (36 * div);
+
+    return steps;
 }
 
 void motion_controller_init(board_pin_e dir_pin, board_pin_e ena_pin) {
@@ -47,6 +73,9 @@ void motion_controller_prepare(int32_t angle) {
     uint32_t steps = angle_to_steps(angle);
 
     if (steps == 0) { return; }
+
+    debug_serial_printf("r = %u\r\n", repetitions);
+    debug_serial_printf("steps = %u\r\n", steps);
 
     controller.block = plan_motion(steps, direction);
     controller.prepared = true;
@@ -127,6 +156,8 @@ void motion_controller_service_event_handler(const event_t *evt) {
         case EVENT_MOTOR_ROTATION_REQUEST: {
             if (controller.busy) { return; }
             if (evt->payload.type != EVENT_DATA_SIGNED) { return; }
+
+            debug_serial_printf("angle = %u\r\n", evt->payload.data.signed_value);
 
             motion_controller_prepare(evt->payload.data.signed_value);
             break;

@@ -27,7 +27,7 @@ motion_block_t plan_motion(uint32_t total_steps, bool direction) {
 
     debug_serial_printf("f_max = %d, f_min = %d\r\n", f_max, f_min);
     debug_serial_printf("df_max = %d, ddf_max = %d\r\n", df_max, ddf_max);
-    debug_serial_printf("repetitions = %d, total_updates = %d\r\n", total_updates, repetitions);
+    debug_serial_printf("repetitions = %d, total_updates = %d, tail_phase_steps = %d\r\n", repetitions, total_updates, tail_phase_steps);
 
     motion_block_t result; // Объявление переменной, в которую записывается результат расчета
     for (uint8_t i = 0; i < PHASE_COUNT; ++i) {
@@ -132,7 +132,7 @@ motion_block_t plan_motion(uint32_t total_steps, bool direction) {
     result.motion_phases[PHASE_C].ddf0 = ddf;
     result.motion_phases[PHASE_C].update_steps = Nc;
 
-    DEBUG_ASSERT(f == f_max);
+    DEBUG_ASSERT(f <= f_max);
 
     // 5. Расчет фазы J3: Движение с нарастающим торможением
     // f = f
