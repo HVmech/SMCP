@@ -10,9 +10,18 @@
 #include <drivers/SysTick_driver.h>
 
 #include <common/debug_assert.h>
-#include <stdint.h>
 
 static motion_controller_state_t controller = {0};
+
+static inline uint32_t gcd(uint32_t a, uint32_t b) {
+    uint32_t temp;
+    while (b != 0) {
+        temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
 
 static inline uint32_t angle_to_steps(int32_t angle_input) {
     const uint32_t abs_angle = (angle_input >= 0) ? angle_input : -angle_input;
@@ -20,30 +29,29 @@ static inline uint32_t angle_to_steps(int32_t angle_input) {
     const uint32_t steps_per_rev = MOTOR_FULL_STEPS_PER_REV * DRIVER_MICROSTEP * GEARBOX_RATIO;
 
     uint8_t precision = 4;
-    uint32_t div = 10;
+    uint32_t div = 360;
 
     for (uint8_t i = 0; i < precision; ++i) {
         div *= 10;
     }
 
     uint32_t mul1 = steps_per_rev;
+    uint32_t temp_gcd = gcd(mul1, div);
+    mul1 /= temp_gcd;
+    div /= temp_gcd;
+
     uint32_t mul2 = abs_angle;
-
-    while (mul1 % 10 == 0 && mul1 && (div % 10) == 0 && div) {
-        mul1 /= 10;
-        div /= 10;
-    }
-
-    while (mul2 % 10 == 0 && mul2 && (div % 10) == 0 && div) {
-        mul2 /= 10;
-        div /= 10;
-    }
+    temp_gcd = gcd(mul2, div);
+    mul2 /= temp_gcd;
+    div /= temp_gcd;
 
     debug_serial_printf("mul1 = %u\r\n", mul1);
     debug_serial_printf("mul2 = %u\r\n", mul2);
     debug_serial_printf("div = %u\r\n", div);
 
-    const uint32_t steps = mul1 * mul2 / (36 * div);
+    DEBUG_ASSERT((uint64_t)mul1 * (uint64_t)mul2 < UINT32_MAX);
+
+    const uint32_t steps = mul1 * mul2 / div;
 
     return steps;
 }
