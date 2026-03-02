@@ -9,5 +9,6 @@
 #include <stdbool.h>
 
 typedef float float32_t;
+typedef void (*void_func_ptr_t)(void);
 
 #endif // SMCP_TYPES_H

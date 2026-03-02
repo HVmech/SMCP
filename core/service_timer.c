@@ -41,7 +41,7 @@ void service_timer_init(uint32_t period_ms)
 }
 
 void service_timer_enable(void) { timer_enable_counter(TIM4); }
-void service_timer_disable(void) { timer_disable_counter(TIM4); }
+void service_timer_disable(void) { timer_disable_counter(TIM4); timer_set_counter(TIM4, 0); }
 
 void TIM4_Handler(void)
 {
