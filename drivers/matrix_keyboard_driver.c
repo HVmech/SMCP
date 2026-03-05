@@ -16,7 +16,6 @@
 #include <libopencm3/stm32/timer.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/cm3/nvic.h>
-#include <stdint.h>
 
 typedef struct {
     bool stable_state;
@@ -134,7 +133,13 @@ static inline bool keyboard_execute_debounce_tick(void) {
                     event_t evt = {0};
                     evt.priority = EVENT_PRIORITY_NORMAL;
                     evt.payload.type = EVENT_DATA_UNSIGNED;
-                    evt.payload.data.unsigned_value = i * KEYBOARD_COLUMNS + j;
+
+                    const uint8_t keycode = i * KEYBOARD_COLUMNS + j;
+                    const uint32_t duration = evt_time - key->last_change_time;
+                    const uint32_t duration_max_value = ((1 << 24) - 1);
+                    const uint32_t duration_calc = duration <= duration_max_value ? duration : duration_max_value;
+
+                    evt.payload.data.unsigned_value = (duration_calc << 8) | keycode;
                     evt.id = EVENT_KEY_RELEASE;
 
                     evt.timestamp = evt_time;

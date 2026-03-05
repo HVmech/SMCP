@@ -89,7 +89,7 @@ int main(void)
     event_bus_init(&g_event_bus, event_queues);
     event_dispatcher_init(&g_event_bus);
 
-    service_timer_init(20);   // базовый период 20 мс
+    service_timer_init(20); // базовый период 20 мс
     if (!debug_serial_init(USART_1, 115200, true, true)) { return -1; }
     LED_service_init_led(0, PC13, true);
     motion_controller_init(PA9, PA10);

@@ -7,7 +7,6 @@
 
 #define KEYBOARD_ROWS 5
 #define KEYBOARD_COLUMNS 4
-//#define KEYBOARD_KEYS (KEYBOARD_ROWS * KEYBOARD_COLS)
 
 #define SCAN_PERIOD_MS         1
 #define DEBOUNCE_TICKS         7
@@ -19,10 +18,37 @@
 #define RC_STABILITY_DELAY_TICK 200
 #define GPIO_STABILITY_DELAY_MS 20
 
+#define NORMAL_PRESS_DURATION_MS 500
+#define LONG_PRESS_DURATION_MS 1000
+
 typedef struct {
     board_pin_e column_pins[KEYBOARD_COLUMNS];
     board_pin_e row_pins[KEYBOARD_ROWS];
 } matrix_keyboard_config_t;
+
+typedef enum {
+    KEY_F1    = 0,
+    KEY_F2    = 1,
+    KEY_SIGN  = 2,
+    KEY_DOT   = 3,
+    KEY_1     = 4,
+    KEY_2     = 5,
+    KEY_3     = 6,
+    KEY_UP    = 7,
+    KEY_4     = 8,
+    KEY_5     = 9,
+    KEY_6     = 10,
+    KEY_DOWN  = 11,
+    KEY_7     = 12,
+    KEY_8     = 13,
+    KEY_9     = 14,
+    KEY_ESC   = 15,
+    KEY_LEFT  = 16,
+    KEY_0     = 17,
+    KEY_RIGHT = 18,
+    KEY_ENT   = 19,
+    KEY_CNT
+} key_t;
 
 void matrix_keyboard_init(const matrix_keyboard_config_t *config);
 

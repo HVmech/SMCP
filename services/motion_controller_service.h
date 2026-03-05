@@ -9,6 +9,8 @@
 
 #include <common/board.h>
 
+#define ANGLE_PRECISION 4
+
 typedef struct {
     motion_block_t block;
     bool prepared;

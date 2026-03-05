@@ -28,10 +28,9 @@ static inline uint32_t angle_to_steps(int32_t angle_input) {
 
     const uint32_t steps_per_rev = MOTOR_FULL_STEPS_PER_REV * DRIVER_MICROSTEP * GEARBOX_RATIO;
 
-    uint8_t precision = 4;
     uint32_t div = 360;
 
-    for (uint8_t i = 0; i < precision; ++i) {
+    for (uint8_t i = 0; i < ANGLE_PRECISION; ++i) {
         div *= 10;
     }
 
