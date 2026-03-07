@@ -1,10 +1,14 @@
-#include "services/debug_serial_service.h"
-#include <services/motion_planning_service.h>
 #include <services/motion_execution_service.h>
 
+#include <globals/motor_telemetry_globals.h>
+
+#include <core/service_timer.h>
 #include <core/event_dispatcher.h>
 #include <core/event_bus.h>
 #include <core/event.h>
+
+#include <services/debug_serial_service.h>
+#include <services/motion_planning_service.h>
 
 #include <drivers/step_timer_driver.h>
 #include <drivers/motion_control_driver.h>
@@ -23,8 +27,6 @@ static motion_executor_config_t config = {0};
 const uint32_t CONST_ENA_DELAY_TIME_MS = 10;
 const uint32_t CONST_DIR_DELAY_TIME_MS = 1;
 
-static volatile uint32_t glob_flag = 0;
-
 // ======= Вспомогательные функции =======
 
 static inline uint32_t get_period(uint32_t freq_hz) { return f_tim / freq_hz; } // Расчет периода для заданной частоты в тактах таймера
@@ -33,6 +35,7 @@ static inline void load_next_phase(void) { // Загрузка следующе�
     if (config.current_phase == PHASE_TAIL) { // Завершающая фаза
         step_timer_stop();
         config.is_running = false;
+        g_generate_motor_telemetry_updates = false;
         motion_executor_notify(true);
         return;
     }
@@ -43,6 +46,7 @@ static inline void load_next_phase(void) { // Загрузка следующе�
         if (config.current_phase == PHASE_TAIL && !config.current_block.tail_phase) { // Нет завершающей фазы
             step_timer_stop();
             config.is_running = false;
+            g_generate_motor_telemetry_updates = false;
             motion_executor_notify(true);
             return;
         }
@@ -119,6 +123,8 @@ void motion_executor_start(motion_block_t* block) { // Запуск выполн
 
     config.is_running = true;
 
+    g_generate_motor_telemetry_updates = true;
+
     set_motion_control_enable(true); // Включение управления
     delay_ms(CONST_ENA_DELAY_TIME_MS);
 
@@ -126,6 +132,7 @@ void motion_executor_start(motion_block_t* block) { // Запуск выполн
     delay_ms(CONST_DIR_DELAY_TIME_MS);
 
     step_timer_start(); // Запуск таймера
+    service_timer_enable(); // Запуск служебного таймера
 }
 
 void motion_executor_stop(void) { // Программная остановка выполнения
@@ -136,8 +143,7 @@ void motion_executor_stop(void) { // Программная остановка �
     set_motion_control_enable(false); // Отключение двигателя
 
     config.is_running = false;
-
-    debug_serial_printf("upds = %u\r\n", glob_flag);
+    g_generate_motor_telemetry_updates = false;
 }
 
 //bool motion_executor_is_running(void) { return config.is_running; }
@@ -160,6 +166,18 @@ void motion_executor_notify(bool state) {
         event_bus_post_from_isr(bus, &evt); // Публикация события
 }
 
+void motion_executor_telemetry_update(void) {
+    g_current_phase = config.current_phase;
+
+    const uint32_t total_phase_updates = config.current_block.motion_phases[config.current_phase].update_steps;
+    if (total_phase_updates) {
+        g_phase_progress_percentage = (total_phase_updates - config.phase_steps_left) * 100 / total_phase_updates;
+    }
+    else {
+        g_phase_progress_percentage = 100;
+    }
+}
+
 // ======= Обработчики прерываний =======
 
 void TIM1_UP_Handler(void) { // Прерывание обновления фазы
@@ -178,8 +196,6 @@ void TIM1_UP_Handler(void) { // Прерывание обновления фаз
 
     // 4. Загрузка следующей фазы, если необходимо
     if (config.phase_steps_left == 0) { load_next_phase(); }
-
-    ++glob_flag;
 }
 
 void TIM1_BRK_Handler(void) { // Прерывание аварийной остановки

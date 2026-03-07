@@ -50,6 +50,9 @@ typedef enum {
     KEY_CNT
 } key_t;
 
+extern const uint8_t key_to_digit[KEY_CNT];
+
 void matrix_keyboard_init(const matrix_keyboard_config_t *config);
+uint8_t matrix_keyboard_key_to_digit(key_t key);
 
 #endif // SMCP_MATRIX_KEYBOARD_DRIVER_H

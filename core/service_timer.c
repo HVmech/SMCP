@@ -7,6 +7,7 @@
 #include <core/event_dispatcher.h>
 #include <core/LED_event.h>
 #include <core/USART_event.h>
+#include <core/motor_telemetry_event.h>
 
 #include <services/debug_serial_service.h>
 #include <drivers/time_driver.h>
@@ -53,6 +54,7 @@ void TIM4_Handler(void)
 
     keep_unabled = keep_unabled || generate_LED_update_event(bus);
     keep_unabled = keep_unabled || generate_USART_update_event(bus);
+    keep_unabled = keep_unabled || generate_motor_telemetry_update_event(bus);
 
     if (!keep_unabled) { service_timer_disable(); }
 }

@@ -17,6 +17,8 @@
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/cm3/nvic.h>
 
+const uint8_t key_to_digit[KEY_CNT] = {0, 0, 0, 0, 1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0, 0, 0, 0, 0};
+
 typedef struct {
     bool stable_state;
     bool raw_state;
@@ -196,7 +198,7 @@ static inline bool keyboard_execute_debounce_tick(void) {
     return any_pressed;
 }
 
-static void keyboard_periodic_task(void) {
+static inline void keyboard_periodic_task(void) {
     if (!scanning_active) { return; }
 
     keyboard_execute_matrix_scan();
@@ -213,7 +215,7 @@ static void keyboard_periodic_task(void) {
     tick++;
 }
 
-static void keyboard_trigger_task(uint8_t line) {
+static inline void keyboard_trigger_task(uint8_t line) {
     if (!scanning_active) {
         keyboard_scanning_start();
     }
@@ -262,6 +264,11 @@ void matrix_keyboard_init(const matrix_keyboard_config_t *config) {
         nvic_set_priority(NVIC_EXTI0_IRQ + line, KEYBOARD_TRIGGER_PRIORITY);
         nvic_enable_irq(NVIC_EXTI0_IRQ + line);
     }
+}
+
+uint8_t matrix_keyboard_key_to_digit(key_t key) {
+    DEBUG_ASSERT(key < KEY_CNT);
+    return key_to_digit[key];
 }
 
 void EXTI0_Handler(void) { if (EXTI_activation_mask & (1 << 0)) { keyboard_trigger_task(0); } }

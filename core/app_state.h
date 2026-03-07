@@ -18,4 +18,7 @@ typedef struct {
     event_handler_t event_handler;
 } app_state_t;
 
+void app_state_transition_request(app_state_code_t state);
+
+
 #endif // SMCP_APP_STATE_H

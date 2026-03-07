@@ -31,5 +31,6 @@ void motion_executor_stop(void);
 //bool motion_executor_is_running(void);
 //uint32_t motion_executor_get_current_speed(void);
 void motion_executor_notify(bool state);
+void motion_executor_telemetry_update(void);
 
 #endif // SMCP_MOTION_EXECUTION_SERVICE

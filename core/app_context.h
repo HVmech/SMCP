@@ -5,7 +5,7 @@
 #include <common/types.h>
 
 typedef struct {
-    uint8_t pos;
+    uint8_t current_digit;
     int32_t value;
     bool mode;
 } input_data_t;

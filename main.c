@@ -33,7 +33,7 @@ static ring_buffer_t event_queue_high;
 static ring_buffer_t event_queue_low;
 static ring_buffer_t event_queue_normal;
 
-void motor_test_helper_handler(const event_t *evt_inp) {
+/* void motor_test_helper_handler(const event_t *evt_inp) {
     if (evt_inp->id != EVENT_MOTOR_ROTATION_PREPARE) { return; }
 
     event_t evt = {0};
@@ -44,7 +44,7 @@ void motor_test_helper_handler(const event_t *evt_inp) {
 
     event_bus_t *bus = event_dispatcher_get_bus();
     event_bus_post(bus, &evt);
-}
+} */
 
 void keyboard_test_helper_handler(const event_t *evt_inp) {
     switch (evt_inp->id) {
@@ -98,7 +98,7 @@ int main(void)
     //event_bus_subscribe(&g_event_bus, EVENT_LED_SERVICE_UPDATE, LED_service_handle_event);
     event_bus_subscribe(&g_event_bus, EVENT_LED_CONTROL, LED_service_handle_event);
     event_bus_subscribe(&g_event_bus, EVENT_USART1_RX, debug_serial_handle_event);
-    event_bus_subscribe(&g_event_bus, EVENT_MOTOR_ROTATION_PREPARE, motor_test_helper_handler);
+    //event_bus_subscribe(&g_event_bus, EVENT_MOTOR_ROTATION_PREPARE, motor_test_helper_handler);
 
     event_bus_subscribe(&g_event_bus, EVENT_KEY_PRESS, keyboard_test_helper_handler);
     event_bus_subscribe(&g_event_bus, EVENT_KEY_RELEASE, keyboard_test_helper_handler);
