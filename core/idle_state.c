@@ -10,19 +10,35 @@
 #include <drivers/matrix_keyboard_driver.h>
 #include <drivers/time_driver.h>
 
+void idle_state_enter(void);
+void idle_state_exit(void);
+void idle_state_event_handler(const event_t *evt);
+
 static inline void idle_state_display(void) {
     LCD_set_string(0, 0, "CURRENT ANGLE:", false);
     LCD_display_angle(1, 0, app_context.current_angle, false, false);
     LCD_update_request();
 }
 
+static inline void idle_state_manage_subscriptions(bool state) {
+    event_bus_t *bus = event_dispatcher_get_bus();
+
+    if (state) {
+        event_bus_subscribe(bus, EVENT_KEY_RELEASE, idle_state_event_handler);
+    }
+    else {
+        event_bus_unsubscribe(bus, EVENT_KEY_RELEASE, idle_state_event_handler);
+    }
+}
+
 void idle_state_enter(void) {
     idle_state_display();
+    idle_state_manage_subscriptions(true);
     debug_serial_printf("IDLE\n");
 }
 
 void idle_state_exit(void) {
-    // ...
+    idle_state_manage_subscriptions(false);
     debug_serial_printf("STATE: IDLE --> ");
 }
 

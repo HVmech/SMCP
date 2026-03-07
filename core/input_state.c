@@ -26,6 +26,10 @@ static uint8_t input_digits[INPUT_DIGITS_COUNT];
 static uint8_t saved_integer_digits;
 static bool sign;
 
+void input_state_enter(void);
+void input_state_exit(void);
+void input_state_event_handler(const event_t *evt);
+
 static inline void input_state_display(bool first_time) {
     if (first_time) {
         if (app_context.input_data.mode) {
@@ -153,15 +157,28 @@ static inline void input_state_set_current_digit(uint8_t digit) {
     } while(0);
 }
 
+static inline void input_state_manage_subscriptions(bool state) {
+    event_bus_t *bus = event_dispatcher_get_bus();
+
+    if (state) {
+        event_bus_subscribe(bus, EVENT_KEY_PRESS, input_state_event_handler);
+        event_bus_subscribe(bus, EVENT_KEY_RELEASE, input_state_event_handler);
+    }
+    else {
+        event_bus_unsubscribe(bus, EVENT_KEY_PRESS, input_state_event_handler);
+        event_bus_unsubscribe(bus, EVENT_KEY_RELEASE, input_state_event_handler);
+    }
+}
+
 void input_state_enter(void) {
     input_state_clear_all_digits();
-
     input_state_display(true);
+    input_state_manage_subscriptions(true);
     debug_serial_printf("INPUT\n");
 }
 
 void input_state_exit(void) {
-    // ...
+    input_state_manage_subscriptions(false);
     debug_serial_printf("STATE: INPUT --> ");
 }
 

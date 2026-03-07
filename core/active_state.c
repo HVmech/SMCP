@@ -1,4 +1,3 @@
-#include "core/app_state.h"
 #include <core/active_state.h>
 
 #include <globals/motor_telemetry_globals.h>
@@ -13,6 +12,10 @@
 
 #include <drivers/matrix_keyboard_driver.h>
 #include <drivers/time_driver.h>
+
+void active_state_enter(void);
+void active_state_exit(void);
+void active_state_event_handler(const event_t *evt);
 
 static inline void active_state_display(void) {
     LCD_set_string(0, 0, "ROTATING:", false);
@@ -52,8 +55,26 @@ static inline void active_state_end_preparation_notify(void) {
     event_bus_post(bus, &evt);
 }
 
+static inline void active_state_manage_subscriptions(bool state) {
+    event_bus_t *bus = event_dispatcher_get_bus();
+
+    if (state) {
+        event_bus_subscribe(bus, EVENT_MOTOR_ROTATION_PREPARE, active_state_event_handler);
+        event_bus_subscribe(bus, EVENT_MOTOR_TELEMETRY_UPDATE, active_state_event_handler);
+        event_bus_subscribe(bus, EVENT_MOTOR_ROTATION_COMPLETE, active_state_event_handler);
+        event_bus_subscribe(bus, EVENT_MOTOR_EMERGENCY_STOP, active_state_event_handler);
+    }
+    else {
+        event_bus_unsubscribe(bus, EVENT_MOTOR_ROTATION_PREPARE, active_state_event_handler);
+        event_bus_unsubscribe(bus, EVENT_MOTOR_TELEMETRY_UPDATE, active_state_event_handler);
+        event_bus_unsubscribe(bus, EVENT_MOTOR_ROTATION_COMPLETE, active_state_event_handler);
+        event_bus_unsubscribe(bus, EVENT_MOTOR_EMERGENCY_STOP, active_state_event_handler);
+    }
+}
+
 void active_state_enter(void) {
     active_state_display();
+    active_state_manage_subscriptions(true);
 
     event_bus_t *bus = event_dispatcher_get_bus();
     const uint32_t evt_time = get_current_time_ms();
@@ -72,8 +93,8 @@ void active_state_enter(void) {
 }
 
 void active_state_exit(void) {
-    // ...
     active_state_emergency_button_led_control(false);
+    active_state_manage_subscriptions(false);
     debug_serial_printf("STATE: ACTIVE --> ");
 }
 

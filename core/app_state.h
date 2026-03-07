@@ -20,5 +20,4 @@ typedef struct {
 
 void app_state_transition_request(app_state_code_t state);
 
-
 #endif // SMCP_APP_STATE_H
