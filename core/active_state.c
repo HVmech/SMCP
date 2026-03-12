@@ -17,9 +17,20 @@ void active_state_enter(void);
 void active_state_exit(void);
 void active_state_event_handler(const event_t *evt);
 
+static inline void LCD_display_motor_telemetry(uint8_t current_phase, uint32_t phase_progress_percentage) {
+    LCD_clear_line(0);
+    LCD_clear_line(1);
+    LCD_set_string(0, 0, "ROTATING:", false, false);
+    LCD_set_string(1, 0, "Ph: ", false, false);
+    LCD_set_integer(1, 4, current_phase, false);
+    LCD_set_string(1, 5, ", Pr: ", false, false);
+    LCD_set_integer(1, 11, phase_progress_percentage, false);
+    LCD_set_char(1, 14, '%', false);
+}
+
 static inline void active_state_display(void) {
-    LCD_set_string(0, 0, "ROTATING:", false);
-    LCD_display_motor_telemetry(1, 0, g_current_phase, g_phase_progress_percentage);
+    LCD_set_string(0, 0, "ROTATING:", false, false);
+    LCD_display_motor_telemetry(g_current_phase, g_phase_progress_percentage);
     LCD_update_request();
 }
 
@@ -86,7 +97,7 @@ void active_state_enter(void) {
     evt.timestamp = evt_time;
 
     evt.payload.type = EVENT_DATA_SIGNED;
-    evt.payload.data.signed_value = app_context.input_data.value;
+    evt.payload.data.signed_value = app_context.input_context.value;
     event_bus_post(bus, &evt);
 
     debug_serial_printf("ACTIVE\n");
@@ -108,7 +119,7 @@ void active_state_event_handler(const event_t *evt) {
             break;
         }
         case EVENT_MOTOR_TELEMETRY_UPDATE: {
-            LCD_display_motor_telemetry(1, 0, g_current_phase, g_phase_progress_percentage);
+            LCD_display_motor_telemetry(g_current_phase, g_phase_progress_percentage);
             LCD_update_request();
             break;
         }

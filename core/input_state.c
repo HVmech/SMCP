@@ -1,3 +1,4 @@
+#include "core/input_data.h"
 #include <core/input_state.h>
 
 #include <core/app_context.h>
@@ -13,7 +14,7 @@
 
 #include <common/debug_assert.h>
 #include <common/utils.h>
-
+/*
 //#define INPUT_PRESICION ((ANGLE_PRECISION - 1) >= 0 ? (ANGLE_PRECISION - 1) : 1)
 #define INPUT_OFFSET_DIGITS 0
 #define INPUT_SIGN_DIGITS 1
@@ -262,7 +263,7 @@ void input_state_event_handler(const event_t *evt) {
         }
         case EVENT_KEY_RELEASE: {
             const key_t key = evt->payload.data.unsigned_value & ((1 << 8) - 1);
-            const uint32_t duration = evt->payload.data.unsigned_value & (~((1 << 8) - 1));
+            const uint32_t duration = evt->payload.data.unsigned_value >> 8;
 
             switch (key) {
                 case KEY_ESC: {
@@ -297,3 +298,8 @@ const app_state_t input_state = {
     .exit = input_state_exit,
     .event_handler = input_state_event_handler
 };
+*/
+
+static inline bool input_state_validate_input(void) {
+    return app_context.input_context.value > -3600000 && app_context.input_context.value < 3600000;
+}

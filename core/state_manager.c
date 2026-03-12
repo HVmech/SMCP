@@ -13,6 +13,9 @@ app_state_code_t current_state = 0;
 void state_manager_init(void) {
     current_state = APP_STATE_IDLE;
     idle_state.enter();
+
+    event_bus_t *bus = event_dispatcher_get_bus();
+    event_bus_subscribe(bus, EVENT_STATE_TRANSITION_REQUEST, state_manager_event_handler);
 }
 
 void state_manager_event_handler(const event_t *evt) {

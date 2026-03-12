@@ -1,4 +1,6 @@
 
+#include <core/state_manager.h>
+
 #include <core/event_dispatcher.h>
 #include <core/event_bus.h>
 #include <core/event.h>
@@ -53,7 +55,9 @@ void keyboard_test_helper_handler(const event_t *evt_inp) {
             break;
         }
         case EVENT_KEY_RELEASE: {
-            debug_serial_printf("KEY RELEASE %u", evt_inp->payload.data.unsigned_value);
+            const uint16_t key = evt_inp->payload.data.unsigned_value & ((1 << 8) - 1);
+            const uint32_t duration = evt_inp->payload.data.unsigned_value >> 8;
+            debug_serial_printf("KEY RELEASE %u[%ums]", key, duration);
             break;
         }
         case EVENT_KEY_REPEAT: {
@@ -91,7 +95,8 @@ int main(void)
 
     service_timer_init(20); // базовый период 20 мс
     if (!debug_serial_init(USART_1, 115200, true, true)) { return -1; }
-    LED_service_init_led(0, PC13, true);
+    LED_service_init_led(LED_BUILTIN, PC13, true);
+    LED_service_init_led(LED_MOTOR_STOP_BUTTON, PB13, false);
     motion_controller_init(PA9, PA10);
     matrix_keyboard_init(&keyboard_config);
 
@@ -103,6 +108,8 @@ int main(void)
     event_bus_subscribe(&g_event_bus, EVENT_KEY_PRESS, keyboard_test_helper_handler);
     event_bus_subscribe(&g_event_bus, EVENT_KEY_RELEASE, keyboard_test_helper_handler);
     event_bus_subscribe(&g_event_bus, EVENT_KEY_REPEAT, keyboard_test_helper_handler);
+
+    state_manager_init();
 
 #ifdef DEBUG
     debug_serial_printf("[%u] DEBUG configuration started\r\n", get_current_time_ms());
