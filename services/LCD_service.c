@@ -15,6 +15,13 @@
 #define LCD_LENGTH 16
 #define LCD_HEIGHT 2
 
+#define LCD_CHAR_EOF 0x0
+#define LCD_CHAR_PLUS 0x2B
+#define LCD_CHAR_MINUS 0x2D
+#define LCD_CHAR_DOT 0x2E
+#define LCD_CHAR_NULL 0x30
+#define LCD_CHAR_DEGREE 0xDF
+
 typedef struct {
     char ch;
     bool blink;
@@ -48,6 +55,8 @@ static uint8_t LCD_format_angle(char *buf, int32_t value, bool show_sign) {
     uint32_t fractional_value = value % precision;
     uint8_t len = 0;
 
+    buf[len++] = LCD_CHAR_DEGREE;
+
     // Дробная часть
     uint8_t fractional_digit_count = INPUT_FRACTIONAL_DIGITS;
     while (fractional_digit_count > 0 && (fractional_value % 10) == 0) { // Удаление замыкающих нулей
@@ -57,19 +66,19 @@ static uint8_t LCD_format_angle(char *buf, int32_t value, bool show_sign) {
 
     if (fractional_digit_count > 0) { // Вывод дробных разрядов
         for (uint8_t i = 0; i < fractional_digit_count; i++) {
-            buf[len++] = '0' + (fractional_value % 10);
+            buf[len++] = LCD_CHAR_NULL + (fractional_value % 10);
             fractional_value /= 10;
         }
-        buf[len++] = '.'; // Вывод точки только в случае наличия дробной части
+        buf[len++] = LCD_CHAR_DOT; // Вывод точки только в случае наличия дробной части
     }
 
     // Целая часть
     if (integer_value == 0) { // Если целых нет
-        buf[len++] = '0';
+        buf[len++] = LCD_CHAR_NULL;
     }
     else {
         while (integer_value > 0) {
-            buf[len++] = '0' + (integer_value % 10);
+            buf[len++] = LCD_CHAR_NULL + (integer_value % 10);
             integer_value /= 10;
         }
     }
@@ -77,14 +86,14 @@ static uint8_t LCD_format_angle(char *buf, int32_t value, bool show_sign) {
     // Вывод знака
     if (show_sign) {
         if (sign) {
-            buf[len++] = '-';
+            buf[len++] = LCD_CHAR_MINUS;
         }
         else {
-            buf[len++] = '+';
+            buf[len++] = LCD_CHAR_PLUS;
         }
     }
 
-    buf[len++] = '\0';
+    buf[len++] = LCD_CHAR_EOF;
 
     return len;
 }
