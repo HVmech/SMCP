@@ -1,10 +1,11 @@
 #pragma once
-
-
 #ifndef SMCP_INPUT_EVENT_H
 #define SMCP_INPUT_EVENT_H
 
 #include <core/app_context.h>
+#include <core/input_state.h>
+#include <core/event_bus.h>
+#include <core/event.h>
 
 #include <services/LCD_service.h>
 
@@ -13,34 +14,33 @@
 #include <common/asm.h>
 
 #define CONST_INPUT_STATE_UPDATE_INTERVAL 1000
-#define CONST_ACTIVE_INPUT_ROW 1
-#define CONST_ACTIVE_INPUT_COLUMN 15
 
-static inline bool generate_input_update_event(void) {
+static inline bool generate_input_update_event(event_bus_t *bus) {
     static bool error_prev = false;
     static uint32_t error_start_time = 0;
 
-    if (app_context.input_context.data.error == true) {
+    if (app_context.input_context.error == true) {
         if (error_prev == false) {
             error_start_time = get_current_time_ms();
-
-            LCD_clear_line(CONST_ACTIVE_INPUT_ROW);
-            //LCD_display_input_angle(CONST_ACTIVE_INPUT_ROW, CONST_ACTIVE_INPUT_COLUMN, true);
         }
 
         if (get_current_time_ms() - error_start_time >= CONST_INPUT_STATE_UPDATE_INTERVAL) {
-            app_context.input_context.data.error = false;
+            app_context.input_context.error = false;
 
-            LCD_clear_line(CONST_ACTIVE_INPUT_ROW);
-            LCD_set_string(CONST_ACTIVE_INPUT_ROW, 0, "INCORRECT INPUT!", true, false);
+            event_t evt = {
+                .id = EVENT_INPUT_ERROR_DISCARD,
+                .priority = EVENT_PRIORITY_NORMAL,
+                .flags = EVENT_FLAG_NONE,
+                .timestamp = get_current_time_ms()
+            };
 
-            LCD_update_request(true);
+            event_bus_post_from_isr(bus, &evt);
             MACRO_ASM_DATA_SYNC_BARRIER;
         }
     }
 
-    error_prev = app_context.input_context.data.error;
-    return app_context.input_context.data.error;
+    error_prev = app_context.input_context.error;
+    return app_context.input_context.error;
 }
 
 #endif // SMCP_INPUT_EVENT_H

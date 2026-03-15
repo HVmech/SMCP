@@ -21,13 +21,12 @@ typedef struct {
     bool input_part; // Какая часть вводится (0 - целая, 1 - дробная)
     
     bool sign; // Знак (1 - минус, 0 - плюс)
-    
-    bool error; // Флаг ошибки
 } input_data_t;
 
 typedef struct {
     bool mode;
     int32_t value;
+    volatile bool error; // Флаг ошибки
     input_data_t data;
 } input_context_t;
 

@@ -1,17 +1,18 @@
 #include <core/service_timer.h>
 
-#include <libopencm3/stm32/timer.h>
-#include <libopencm3/stm32/rcc.h>
-#include <libopencm3/cm3/nvic.h>
-
 #include <core/event_dispatcher.h>
 #include <core/LED_event.h>
 #include <core/USART_event.h>
 #include <core/motor_telemetry_event.h>
 #include <core/input_event.h>
+#include <core/LCD_event.h>
 
 #include <services/debug_serial_service.h>
 #include <drivers/time_driver.h>
+
+#include <libopencm3/stm32/timer.h>
+#include <libopencm3/stm32/rcc.h>
+#include <libopencm3/cm3/nvic.h>
 
 static uint32_t service_timer_period_ms = 20;
 
@@ -45,10 +46,8 @@ void service_timer_init(uint32_t period_ms)
 void service_timer_enable(void) { timer_enable_counter(TIM4); }
 void service_timer_disable(void) { timer_disable_counter(TIM4); timer_set_counter(TIM4, 0); }
 
-void TIM4_Handler(void)
-{
+void TIM4_Handler(void) {
     timer_clear_flag(TIM4, TIM_SR_UIF);
-    //debug_serial_printf("[%u] TIM\n", get_current_time_ms());
 
     event_bus_t *bus = event_dispatcher_get_bus();
     bool keep_unabled = false;
@@ -56,7 +55,8 @@ void TIM4_Handler(void)
     keep_unabled = keep_unabled || generate_LED_update_event(bus);
     keep_unabled = keep_unabled || generate_USART_update_event(bus);
     keep_unabled = keep_unabled || generate_motor_telemetry_update_event(bus);
-    keep_unabled = keep_unabled || generate_input_update_event();
+    keep_unabled = keep_unabled || generate_input_update_event(bus);
+    keep_unabled = keep_unabled || generate_LCD_update_event();
 
     if (!keep_unabled) { service_timer_disable(); }
 }

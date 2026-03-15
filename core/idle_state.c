@@ -1,6 +1,7 @@
 #include <core/idle_state.h>
 
 #include <core/app_context.h>
+#include <core/input_data.h>
 #include <core/event_dispatcher.h>
 #include <core/event.h>
 
@@ -10,36 +11,89 @@
 #include <drivers/matrix_keyboard_driver.h>
 #include <drivers/time_driver.h>
 
-void idle_state_enter(void);
-void idle_state_exit(void);
-void idle_state_event_handler(const event_t *evt);
+#include <common/debug_assert.h>
+#include <common/utils.h>
+#include <common/types.h>
+
+static inline uint8_t idle_state_get_angle_digits_count(uint32_t angle) {
+    uint8_t digits_count = 0;
+
+    while (angle > 0) {
+        angle /= 10;
+        ++digits_count;
+    }
+
+    return digits_count;
+}
+
+static inline uint8_t idle_state_get_trailing_zeros_count(uint32_t angle) {
+    uint8_t trailing_zeros = 0;
+
+    for (uint8_t i = 0; i < INPUT_FRACTIONAL_DIGITS; ++i) {
+        if (angle % 10) { break; }
+
+        ++trailing_zeros;
+        angle /= 10;
+    }
+
+    return trailing_zeros;
+}
+
+static inline void idle_state_display_angle(uint8_t row, bool right_alignment) {
+    DEBUG_ASSERT(row < LCD_HEIGHT);
+
+    const uint8_t digit_fields = idle_state_get_angle_digits_count(app_context.current_angle);
+    const uint8_t integer_fields = MAX_VALUE((digit_fields >= INPUT_FRACTIONAL_DIGITS ? digit_fields - INPUT_FRACTIONAL_DIGITS : 0), 1);
+
+    const uint8_t trailing_zeros_count = digit_fields ? idle_state_get_trailing_zeros_count(app_context.current_angle) : 0;
+    const uint8_t fractional_fields = INPUT_FRACTIONAL_DIGITS - trailing_zeros_count;
+    
+    const uint8_t dot_fields = fractional_fields ? 1 : 0;
+    const uint8_t measurement_fields = 1;
+
+    const uint8_t all_angle_fields = integer_fields + dot_fields + fractional_fields + measurement_fields;
+    DEBUG_ASSERT(all_angle_fields);
+
+    uint32_t angle_value = app_context.current_angle;
+    const uint8_t start_pos = right_alignment ? LCD_LENGTH - 1 : all_angle_fields - 1;
+    uint8_t pos = start_pos;
+
+    uint8_t digit = 0;
+
+    if (measurement_fields) {
+        const unsigned char degree_char = LCD_CHAR_DEGREE; 
+        LCD_set_char(row, pos--, degree_char, false);
+    }
+
+    for (uint8_t i = 0; i < trailing_zeros_count; ++i) {
+        angle_value /= 10;
+    }
+
+    if (dot_fields) {
+        for (uint8_t i = 0; i < fractional_fields; ++i) {
+            digit = angle_value % 10;
+            angle_value /= 10;
+            LCD_set_integer(row, pos--, digit, false);
+        }
+
+        const unsigned char dot_char = LCD_CHAR_DOT; 
+        LCD_set_char(row, pos--, dot_char, false);
+    }
+
+    for (uint8_t i = 0; i < integer_fields; ++i) {
+        digit = angle_value % 10;
+        angle_value /= 10;
+        LCD_set_integer(row, pos--, digit, false);
+    }
+
+    DEBUG_ASSERT(pos == start_pos + all_angle_fields);
+}
 
 static inline void idle_state_display(void) {
-    LCD_set_string(0, 0, "CURRENT ANGLE:", false, false);
-    LCD_display_angle(1, 0, app_context.current_angle, false, false);
+    LCD_clear_display();
+    LCD_set_string(CONST_IDLE_STATE_INFO_ROW, 0, "CURRENT ANGLE:", false);
+    idle_state_display_angle(CONST_IDLE_STATE_ANLE_ROW, true);
     LCD_update_request(false);
-}
-
-static inline void idle_state_manage_subscriptions(bool state) {
-    event_bus_t *bus = event_dispatcher_get_bus();
-
-    if (state) {
-        event_bus_subscribe(bus, EVENT_KEY_RELEASE, idle_state_event_handler);
-    }
-    else {
-        event_bus_unsubscribe(bus, EVENT_KEY_RELEASE, idle_state_event_handler);
-    }
-}
-
-void idle_state_enter(void) {
-    idle_state_display();
-    idle_state_manage_subscriptions(true);
-    debug_serial_printf("IDLE\n");
-}
-
-void idle_state_exit(void) {
-    idle_state_manage_subscriptions(false);
-    debug_serial_printf("STATE: IDLE --> ");
 }
 
 void idle_state_event_handler(const event_t *evt) {
@@ -66,6 +120,28 @@ void idle_state_event_handler(const event_t *evt) {
         }
         default: { return; }
     }
+}
+
+static inline void idle_state_manage_subscriptions(bool state) {
+    event_bus_t *bus = event_dispatcher_get_bus();
+
+    if (state) {
+        event_bus_subscribe(bus, EVENT_KEY_RELEASE, idle_state_event_handler);
+    }
+    else {
+        event_bus_unsubscribe(bus, EVENT_KEY_RELEASE, idle_state_event_handler);
+    }
+}
+
+void idle_state_enter(void) {
+    idle_state_display();
+    idle_state_manage_subscriptions(true);
+    debug_serial_printf("IDLE\n");
+}
+
+void idle_state_exit(void) {
+    idle_state_manage_subscriptions(false);
+    debug_serial_printf("STATE: IDLE --> ");
 }
 
 const app_state_t idle_state = {

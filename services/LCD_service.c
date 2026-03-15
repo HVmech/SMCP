@@ -1,154 +1,85 @@
 #include <services/LCD_service.h>
 
+#include <globals/LCD_globals.h>
+
 #include <services/motion_controller_service.h>
 #include <services/debug_serial_service.h>
 
 #include <core/app_context.h>
 #include <core/input_data.h>
+#include <core/service_timer.h>
 #include <core/event_dispatcher.h>
 #include <core/event_bus.h>
-#include <core/event.h>
 
 #include <drivers/time_driver.h>
-#include <stdint.h>
 
-#define LCD_LENGTH 16
-#define LCD_HEIGHT 2
-
-#define LCD_CHAR_EOF 0x0
-#define LCD_CHAR_PLUS 0x2B
-#define LCD_CHAR_MINUS 0x2D
-#define LCD_CHAR_DOT 0x2E
-#define LCD_CHAR_NULL 0x30
-#define LCD_CHAR_DEGREE 0xDF
+#include <common/types.h>
 
 typedef struct {
-    char ch;
+    uint8_t ch;
     bool blink;
 } LCD_field_t;
 
 typedef struct {
-    uint8_t pos;
-    bool visible;
-} LCD_cursor_t;
-
-typedef struct {
     LCD_field_t fields[LCD_LENGTH * LCD_HEIGHT];
-    LCD_cursor_t cursor;
 } LCD_buffer_t;
 
-static LCD_buffer_t lcd = {0};
+typedef struct {
+    LCD_buffer_t current;
+    LCD_buffer_t previous;
+    bool change[LCD_LENGTH * LCD_HEIGHT];
+} LCD_controller_t;
 
-static uint8_t LCD_format_angle(char *buf, int32_t value, bool show_sign) {
-    // Определение знака
-    bool sign = false;
-    if (value < 0) {
-        sign = true;
-        value = -value;
-    }
+static LCD_controller_t lcd = {0};
 
-    // Определение целой и дробной части
-    int32_t precision = 1;
-    for (uint8_t i = 0; i < INPUT_FRACTIONAL_DIGITS; i++) { precision *= 10; }
+void LCD_set_char(uint8_t row, uint8_t column, uint8_t ch, bool blink) {
+    DEBUG_ASSERT(row < LCD_HEIGHT && column < LCD_LENGTH);
 
-    uint32_t integer_value  = value / precision;
-    uint32_t fractional_value = value % precision;
-    uint8_t len = 0;
-
-    buf[len++] = LCD_CHAR_DEGREE;
-
-    // Дробная часть
-    uint8_t fractional_digit_count = INPUT_FRACTIONAL_DIGITS;
-    while (fractional_digit_count > 0 && (fractional_value % 10) == 0) { // Удаление замыкающих нулей
-        fractional_value /= 10;
-        --fractional_digit_count;
-    }
-
-    if (fractional_digit_count > 0) { // Вывод дробных разрядов
-        for (uint8_t i = 0; i < fractional_digit_count; i++) {
-            buf[len++] = LCD_CHAR_NULL + (fractional_value % 10);
-            fractional_value /= 10;
-        }
-        buf[len++] = LCD_CHAR_DOT; // Вывод точки только в случае наличия дробной части
-    }
-
-    // Целая часть
-    if (integer_value == 0) { // Если целых нет
-        buf[len++] = LCD_CHAR_NULL;
-    }
-    else {
-        while (integer_value > 0) {
-            buf[len++] = LCD_CHAR_NULL + (integer_value % 10);
-            integer_value /= 10;
-        }
-    }
-
-    // Вывод знака
-    if (show_sign) {
-        if (sign) {
-            buf[len++] = LCD_CHAR_MINUS;
-        }
-        else {
-            buf[len++] = LCD_CHAR_PLUS;
-        }
-    }
-
-    buf[len++] = LCD_CHAR_EOF;
-
-    return len;
+    lcd.current.fields[LCD_LENGTH * row + column].ch = ch;
+    lcd.current.fields[LCD_LENGTH * row + column].blink = blink;
 }
 
-void LCD_set_char(uint8_t row, uint8_t column, char ch, bool blink) {
-    lcd.fields[LCD_LENGTH * row + column].ch = ch;
-    lcd.fields[LCD_LENGTH * row + column].blink = blink;
-}
-
-void LCD_set_cursor(uint8_t row, uint8_t column, bool visible) {
-    lcd.cursor.pos = LCD_LENGTH * row + column;
-    lcd.cursor.visible = visible;
-}
-
-void LCD_set_string(uint8_t row, uint8_t column, const char* str, bool blink, bool reversed) {
-    int8_t col = column;
-
-    if (reversed) {
-        for (uint8_t i = 0; str[i] && col >= 0; i++) {
-            LCD_set_char(row, col, str[i], blink);
-            --col;
-        }
-    }
-    else {
-        for (int8_t i = 0; str[i] && col < LCD_LENGTH; ++i) {
-            LCD_set_char(row, col, str[i], blink);
-            ++col;
-        }
+void LCD_set_string(uint8_t row, uint8_t column, const char* str, bool blink) {
+    for (uint8_t i = 0; str[i] && column + i < LCD_LENGTH; ++i) {
+        LCD_set_char(row, column + i, (uint8_t)str[i], blink);
     }
 }
 
 void LCD_set_integer(uint8_t row, uint8_t column, uint32_t value, bool blink) {
+    // TODO: переделать с прямым порядком
     uint8_t digit = 0;
-    while (value && column < LCD_LENGTH) {
+    do {
         digit = value % 10;
-        LCD_set_char(row, column++, '0' + digit, blink);
+        LCD_set_char(row, column++, LCD_CHAR_NULL + digit, blink);
         value /= 10;
-    }
+    } while (value && column < LCD_LENGTH);
 }
 
 void LCD_clear_line(uint8_t row) {
     for (uint8_t i = 0; i < LCD_LENGTH; ++i) {
-        LCD_set_char(row, i, 0, false);
+        LCD_set_char(row, i, LCD_CHAR_EOF, false);
     }
 }
 
-void LCD_display_angle(uint8_t row, uint8_t column, int32_t angle, bool show_sign, bool blink) {
-    char buf[LCD_LENGTH];
-    LCD_format_angle(buf, angle, show_sign);
-    LCD_set_string(row, column, buf, blink, true);
+void LCD_clear_display(void) {
+    for (uint8_t r = 0; r < LCD_HEIGHT; ++r) {
+        LCD_clear_line(r);
+    }
 }
 
 void LCD_update_request(bool from_isr) {
-    event_bus_t *bus = event_dispatcher_get_bus();
+    bool any_blink = false;
+    for (uint8_t i = 0; i < LCD_LENGTH * LCD_HEIGHT; ++i) {
+        lcd.change[i] = (lcd.current.fields[i].ch != lcd.previous.fields[i].ch || lcd.current.fields[i].blink != lcd.previous.fields[i].blink);
+        any_blink = any_blink || lcd.current.fields[i].blink;
+    }
 
+    if (g_lcd_blink != any_blink && any_blink == true) {
+        g_lcd_blink = any_blink;
+        if (any_blink) { service_timer_enable(); }
+    }
+
+    event_bus_t *bus = event_dispatcher_get_bus();
     event_t evt = {0};
     evt.id = EVENT_LCD_UPDATE_REQUEST;
     evt.priority = EVENT_PRIORITY_LOW;
@@ -160,5 +91,32 @@ void LCD_update_request(bool from_isr) {
     }
     else {
         event_bus_post(bus, &evt);
+    }
+}
+
+void LCD_test_helper_handler(const event_t *evt_inp) {
+    static bool prev_blink_phase = false;
+    
+    switch (evt_inp->id) {
+        case EVENT_LCD_UPDATE_REQUEST: {
+            bool blink_phase_has_changed = prev_blink_phase != g_lcd_blink_phase;
+            prev_blink_phase = g_lcd_blink_phase;
+
+            for (uint8_t i = 0; i < LCD_LENGTH * LCD_HEIGHT; ++i) {
+                if (lcd.change[i] || (lcd.current.fields[i].blink && blink_phase_has_changed)) {
+                    const uint8_t ch = lcd.current.fields[i].blink ? (g_lcd_blink_phase ? lcd.current.fields[i].ch : LCD_CHAR_EOF) : lcd.current.fields[i].ch;
+                    debug_serial_putchar(ch);
+                    
+                    if (i == LCD_LENGTH - 1 || i == LCD_LENGTH * LCD_HEIGHT - 1) {
+                        debug_serial_putchar('\n');
+                    }
+
+                    lcd.previous.fields[i].blink = lcd.current.fields[i].blink;
+                    lcd.previous.fields[i].ch = lcd.current.fields[i].ch;
+                }
+            }
+            break;
+        }
+        default: { break; }
     }
 }

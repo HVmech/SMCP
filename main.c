@@ -9,6 +9,7 @@
 #include <services/debug_serial_service.h>
 #include <services/LED_service.h>
 #include <services/motion_controller_service.h>
+#include <services/LCD_service.h>
 
 #include <drivers/matrix_keyboard_driver.h>
 #include <drivers/RTC_driver.h>
@@ -108,6 +109,8 @@ int main(void)
     event_bus_subscribe(&g_event_bus, EVENT_KEY_PRESS, keyboard_test_helper_handler);
     event_bus_subscribe(&g_event_bus, EVENT_KEY_RELEASE, keyboard_test_helper_handler);
     event_bus_subscribe(&g_event_bus, EVENT_KEY_REPEAT, keyboard_test_helper_handler);
+
+    event_bus_subscribe(&g_event_bus, EVENT_LCD_UPDATE_REQUEST, LCD_test_helper_handler);
 
     state_manager_init();
 
