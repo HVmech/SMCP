@@ -31,7 +31,7 @@ static inline void LCD_display_motor_telemetry(uint8_t current_phase, uint32_t p
 static inline void active_state_display(void) {
     LCD_set_string(0, 0, "ROTATING:", false, false);
     LCD_display_motor_telemetry(g_current_phase, g_phase_progress_percentage);
-    LCD_update_request();
+    LCD_update_request(false);
 }
 
 static inline void active_state_emergency_button_led_control(bool state) {
@@ -120,7 +120,7 @@ void active_state_event_handler(const event_t *evt) {
         }
         case EVENT_MOTOR_TELEMETRY_UPDATE: {
             LCD_display_motor_telemetry(g_current_phase, g_phase_progress_percentage);
-            LCD_update_request();
+            LCD_update_request(false);
             break;
         }
         case EVENT_MOTOR_ROTATION_COMPLETE: {

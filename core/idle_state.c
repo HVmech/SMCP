@@ -17,7 +17,7 @@ void idle_state_event_handler(const event_t *evt);
 static inline void idle_state_display(void) {
     LCD_set_string(0, 0, "CURRENT ANGLE:", false, false);
     LCD_display_angle(1, 0, app_context.current_angle, false, false);
-    LCD_update_request();
+    LCD_update_request(false);
 }
 
 static inline void idle_state_manage_subscriptions(bool state) {

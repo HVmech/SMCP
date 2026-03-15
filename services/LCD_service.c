@@ -146,7 +146,7 @@ void LCD_display_angle(uint8_t row, uint8_t column, int32_t angle, bool show_sig
     LCD_set_string(row, column, buf, blink, true);
 }
 
-void LCD_update_request(void) {
+void LCD_update_request(bool from_isr) {
     event_bus_t *bus = event_dispatcher_get_bus();
 
     event_t evt = {0};
@@ -155,5 +155,10 @@ void LCD_update_request(void) {
     evt.flags = EVENT_FLAG_DEDUPLICATE_LAST;
     evt.timestamp = get_current_time_ms();
 
-    event_bus_post(bus, &evt);
+    if (from_isr) {
+        event_bus_post_from_isr(bus, &evt);
+    }
+    else {
+        event_bus_post(bus, &evt);
+    }
 }

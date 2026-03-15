@@ -18,9 +18,9 @@ typedef struct {
     uint8_t fractional_count;
     
     uint8_t cursor_position;
-    uint8_t input_part; // Какая часть вводится (0 - целая, 1 - дробная)
+    bool input_part; // Какая часть вводится (0 - целая, 1 - дробная)
     
-    uint8_t sign; // Знак (1 - минус, 0 - плюс)
+    bool sign; // Знак (1 - минус, 0 - плюс)
     
     bool error; // Флаг ошибки
 } input_data_t;
