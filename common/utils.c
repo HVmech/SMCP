@@ -60,3 +60,27 @@ void* memset(void* dest, int val, unsigned int count) {
 
     return dest;
 }
+
+uint8_t digcnt(uint32_t value) {
+    uint8_t digits_count = 0;
+
+    while (value > 0) {
+        value /= 10;
+        ++digits_count;
+    }
+
+    return digits_count;
+}
+
+uint8_t trzercnt(uint32_t value, uint8_t digit_count) {
+    uint8_t trailing_zeros = 0;
+
+    for (uint8_t i = 0; i < digit_count; ++i) {
+        if (value % 10) { break; }
+
+        ++trailing_zeros;
+        value /= 10;
+    }
+
+    return trailing_zeros;
+}

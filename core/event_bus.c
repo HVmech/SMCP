@@ -90,8 +90,10 @@ bool event_bus_post(event_bus_t *bus, const event_t *evt) {
     if (evt->flags & EVENT_FLAG_DEDUPLICATE_LAST) {
         if (event_bus_deduplicate_last(rb, evt)) {
             ++(bus->stats[evt->priority].deduplicated);
+            result = false;
         }
-    } else {
+    }
+    if (result) {
         if (!ring_buffer_push(rb, evt)) {
             ++(bus->stats[evt->priority].dropped);
             result = false;
@@ -119,9 +121,10 @@ bool event_bus_post_from_isr(event_bus_t *bus, const event_t *evt) {
     if (evt->flags & EVENT_FLAG_DEDUPLICATE_LAST) {
         if (event_bus_deduplicate_last(rb, evt)) {
             ++(bus->stats[evt->priority].deduplicated);
+            result = false;
         }
     }
-    else {
+    if (result) {
         if (!ring_buffer_push(rb, evt)) {
             ++(bus->stats[evt->priority].dropped);
             result = false;

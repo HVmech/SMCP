@@ -15,37 +15,13 @@
 #include <common/utils.h>
 #include <common/types.h>
 
-static inline uint8_t idle_state_get_angle_digits_count(uint32_t angle) {
-    uint8_t digits_count = 0;
-
-    while (angle > 0) {
-        angle /= 10;
-        ++digits_count;
-    }
-
-    return digits_count;
-}
-
-static inline uint8_t idle_state_get_trailing_zeros_count(uint32_t angle) {
-    uint8_t trailing_zeros = 0;
-
-    for (uint8_t i = 0; i < INPUT_FRACTIONAL_DIGITS; ++i) {
-        if (angle % 10) { break; }
-
-        ++trailing_zeros;
-        angle /= 10;
-    }
-
-    return trailing_zeros;
-}
-
 static inline void idle_state_display_angle(uint8_t row, bool right_alignment) {
     DEBUG_ASSERT(row < LCD_HEIGHT);
 
-    const uint8_t digit_fields = idle_state_get_angle_digits_count(app_context.current_angle);
+    const uint8_t digit_fields = digcnt(app_context.current_angle);
     const uint8_t integer_fields = MAX_VALUE((digit_fields >= INPUT_FRACTIONAL_DIGITS ? digit_fields - INPUT_FRACTIONAL_DIGITS : 0), 1);
 
-    const uint8_t trailing_zeros_count = digit_fields ? idle_state_get_trailing_zeros_count(app_context.current_angle) : 0;
+    const uint8_t trailing_zeros_count = digit_fields ? trzercnt(app_context.current_angle, INPUT_FRACTIONAL_DIGITS) : INPUT_FRACTIONAL_DIGITS;
     const uint8_t fractional_fields = INPUT_FRACTIONAL_DIGITS - trailing_zeros_count;
     
     const uint8_t dot_fields = fractional_fields ? 1 : 0;
@@ -86,7 +62,7 @@ static inline void idle_state_display_angle(uint8_t row, bool right_alignment) {
         LCD_set_integer(row, pos--, digit, false);
     }
 
-    DEBUG_ASSERT(pos == start_pos + all_angle_fields);
+    DEBUG_ASSERT(pos == start_pos - all_angle_fields);
 }
 
 static inline void idle_state_display(void) {

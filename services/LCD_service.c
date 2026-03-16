@@ -13,6 +13,7 @@
 
 #include <drivers/time_driver.h>
 
+#include <common/utils.h>
 #include <common/types.h>
 
 typedef struct {
@@ -46,13 +47,20 @@ void LCD_set_string(uint8_t row, uint8_t column, const char* str, bool blink) {
 }
 
 void LCD_set_integer(uint8_t row, uint8_t column, uint32_t value, bool blink) {
-    // TODO: переделать с прямым порядком
+    const uint8_t digits_count = MAX_VALUE(digcnt(value), 1);
     uint8_t digit = 0;
+    uint8_t col = column + digits_count;
+
     do {
-        digit = value % 10;
-        LCD_set_char(row, column++, LCD_CHAR_NULL + digit, blink);
+        --col;
+
+        if (col < LCD_LENGTH) {
+            digit = value % 10;
+            LCD_set_char(row, col, LCD_CHAR_NULL + digit, blink);
+        }
         value /= 10;
-    } while (value && column < LCD_LENGTH);
+
+    } while (col > column);
 }
 
 void LCD_clear_line(uint8_t row) {
@@ -92,6 +100,8 @@ void LCD_update_request(bool from_isr) {
     else {
         event_bus_post(bus, &evt);
     }
+
+    debug_serial_printf("!!!\n");
 }
 
 void LCD_test_helper_handler(const event_t *evt_inp) {
@@ -104,19 +114,47 @@ void LCD_test_helper_handler(const event_t *evt_inp) {
 
             for (uint8_t i = 0; i < LCD_LENGTH * LCD_HEIGHT; ++i) {
                 if (lcd.change[i] || (lcd.current.fields[i].blink && blink_phase_has_changed)) {
-                    const uint8_t ch = lcd.current.fields[i].blink ? (g_lcd_blink_phase ? lcd.current.fields[i].ch : LCD_CHAR_EOF) : lcd.current.fields[i].ch;
-                    debug_serial_putchar(ch);
-                    
-                    if (i == LCD_LENGTH - 1 || i == LCD_LENGTH * LCD_HEIGHT - 1) {
-                        debug_serial_putchar('\n');
-                    }
-
                     lcd.previous.fields[i].blink = lcd.current.fields[i].blink;
                     lcd.previous.fields[i].ch = lcd.current.fields[i].ch;
+                }
+
+                uint8_t ch = lcd.current.fields[i].blink ? (g_lcd_blink_phase ? lcd.current.fields[i].ch : LCD_CHAR_EOF) : lcd.current.fields[i].ch;
+                switch (ch) {
+                    case LCD_CHAR_DOT: {
+                        ch = '.';
+                        break;
+                    }
+                    case LCD_CHAR_EOF: {
+                        ch = ' ';
+                        break;
+                    }
+                    case LCD_CHAR_DEGREE: {
+                        ch = '*';
+                        break;
+                    }
+                    case LCD_CHAR_PLUS: {
+                        ch = '+';
+                        break;
+                    }
+                    case LCD_CHAR_MINUS: {
+                        ch = '-';
+                        break;
+                    }
+                    default: {
+                        break;
+                    }
+                }
+
+                debug_serial_putchar(ch);
+                
+                if (i == LCD_LENGTH - 1 || i == LCD_LENGTH * LCD_HEIGHT - 1) {
+                    debug_serial_putchar('\n');
                 }
             }
             break;
         }
         default: { break; }
     }
+
+    delay_ms(5000);
 }

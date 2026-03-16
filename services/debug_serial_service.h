@@ -11,7 +11,7 @@
 bool debug_serial_init(USART_port_e port, uint32_t baudrate, bool remap, bool enable_stats); // Инициализация serial
 
 // Базовые функции вывода
-void debug_serial_putchar(char ch);
+void debug_serial_putchar(uint8_t ch);
 void debug_serial_puts(const char *str);
 void debug_serial_putu(uint32_t num);
 void debug_serial_puti(int32_t num);

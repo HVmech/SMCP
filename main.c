@@ -52,17 +52,17 @@ static ring_buffer_t event_queue_normal;
 void keyboard_test_helper_handler(const event_t *evt_inp) {
     switch (evt_inp->id) {
         case EVENT_KEY_PRESS: {
-            debug_serial_printf("KEY PRESS %u", evt_inp->payload.data.unsigned_value);
+            debug_serial_printf("KEY PRESS %u\n", evt_inp->payload.data.unsigned_value);
             break;
         }
         case EVENT_KEY_RELEASE: {
             const uint16_t key = evt_inp->payload.data.unsigned_value & ((1 << 8) - 1);
             const uint32_t duration = evt_inp->payload.data.unsigned_value >> 8;
-            debug_serial_printf("KEY RELEASE %u[%ums]", key, duration);
+            debug_serial_printf("KEY RELEASE %u : %ums\n", key, duration);
             break;
         }
         case EVENT_KEY_REPEAT: {
-            debug_serial_printf("KEY REPEAT %u", evt_inp->payload.data.unsigned_value);
+            debug_serial_printf("KEY REPEAT %u\n", evt_inp->payload.data.unsigned_value);
             break;
         }
         default: {

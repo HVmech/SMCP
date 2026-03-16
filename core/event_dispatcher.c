@@ -39,7 +39,7 @@ bool event_dispatcher_process() {
         result = true;
     }
 
-    if (result) { debug_serial_printf("[%u] EVENT PROCESSED: %d\n", evt.id, g_SysTick_cnt); }
+    if (result) { debug_serial_printf("[%u] EVENT PROCESSED: %d\n", g_SysTick_cnt, evt.id); }
 
     return result; // Все очереди пусты
 }

@@ -42,9 +42,9 @@ bool debug_serial_init(USART_port_e port, uint32_t baudrate, bool remap, bool en
     return true;
 }
 
-void debug_serial_putchar(char ch) {
+void debug_serial_putchar(uint8_t ch) {
     DEBUG_ASSERT(initialized);
-    USART_try_send(&serial_USART_driver, (uint8_t)ch, 10);
+    USART_try_send(&serial_USART_driver, ch, 10);
     //USART_send(&serial_USART_driver, (uint8_t)ch);
 }
 
