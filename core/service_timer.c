@@ -52,11 +52,11 @@ void TIM4_Handler(void) {
     event_bus_t *bus = event_dispatcher_get_bus();
     bool keep_unabled = false;
 
-    keep_unabled = keep_unabled || generate_LED_update_event(bus);
-    keep_unabled = keep_unabled || generate_USART_update_event(bus);
-    keep_unabled = keep_unabled || generate_motor_telemetry_update_event(bus);
-    keep_unabled = keep_unabled || generate_input_update_event(bus);
-    keep_unabled = keep_unabled || generate_LCD_update_event();
+    keep_unabled |= generate_LED_update_event(bus);
+    keep_unabled |= generate_USART_update_event(bus);
+    keep_unabled |= generate_motor_telemetry_update_event(bus);
+    keep_unabled |= generate_input_update_event(bus);
+    keep_unabled |= generate_LCD_update_event();
 
     if (!keep_unabled) { service_timer_disable(); }
 }

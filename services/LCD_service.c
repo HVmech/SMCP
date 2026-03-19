@@ -82,9 +82,14 @@ void LCD_update_request(bool from_isr) {
         any_blink = any_blink || lcd.current.fields[i].blink;
     }
 
-    if (g_lcd_blink != any_blink && any_blink == true) {
-        g_lcd_blink = any_blink;
-        if (any_blink) { service_timer_enable(); }
+    if (g_lcd_blink != any_blink) {
+        if (any_blink == true) {
+            g_lcd_blink = true;
+            service_timer_enable();
+        }
+        else {
+            g_lcd_blink = false;
+        }
     }
 
     event_bus_t *bus = event_dispatcher_get_bus();
@@ -100,8 +105,6 @@ void LCD_update_request(bool from_isr) {
     else {
         event_bus_post(bus, &evt);
     }
-
-    debug_serial_printf("!!!\n");
 }
 
 void LCD_test_helper_handler(const event_t *evt_inp) {
@@ -125,7 +128,7 @@ void LCD_test_helper_handler(const event_t *evt_inp) {
                         break;
                     }
                     case LCD_CHAR_EOF: {
-                        ch = ' ';
+                        ch = '_';
                         break;
                     }
                     case LCD_CHAR_DEGREE: {
@@ -155,6 +158,4 @@ void LCD_test_helper_handler(const event_t *evt_inp) {
         }
         default: { break; }
     }
-
-    delay_ms(5000);
 }

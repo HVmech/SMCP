@@ -1,3 +1,4 @@
+#include "core/app_state.h"
 #include <core/input_state.h>
 
 #include <core/app_context.h>
@@ -58,7 +59,7 @@ static inline void input_state_display_angle(uint8_t row, bool right_alignment) 
 
         for (uint8_t i = 0; i < fractional_fields; ++i) {
             const bool fractional_blink = app_context.input_context.data.input_part ? (i == app_context.input_context.data.cursor_position) : false;
-            LCD_set_integer(row, pos++, app_context.input_context.data.integer_digits[i], fractional_blink);
+            LCD_set_integer(row, pos++, app_context.input_context.data.fractional_digits[i], fractional_blink);
         }
     }
 
@@ -94,6 +95,7 @@ static inline bool input_state_check_any_digit_set(void) {
 // Функции обновления параметров ввода
 static inline void input_state_reset_all_digits(void) {
     memset(&app_context.input_context.data, 0, sizeof(app_context.input_context.data));
+    app_context.input_context.data.cursor_position = INPUT_INTEGER_DIGITS - 1;
 }
 
 // Сброс значения
@@ -277,7 +279,7 @@ static inline void input_state_process_digit_set(uint8_t digit) {
         input_state_update_fractional_data();
     }
     else {
-        uint8_t first_digit = INPUT_INTEGER_DIGITS - app_context.input_context.data.integer_count;
+        const uint8_t first_digit = INPUT_INTEGER_DIGITS - app_context.input_context.data.integer_count;
 
         if (app_context.input_context.data.cursor_position < first_digit) {
             app_context.input_context.data.integer_digits[app_context.input_context.data.cursor_position] = digit;
@@ -410,7 +412,12 @@ static inline void input_state_process_apply() {
     const bool validation = input_state_validate_input();
 
     if (validation) {
-        app_state_transition_request(APP_STATE_ACTIVE);
+        if ((!app_context.input_context.mode && app_context.input_context.value != app_context.current_angle) || (app_context.input_context.mode && app_context.input_context.value)) {
+            app_state_transition_request(APP_STATE_ACTIVE);
+        }
+        else {
+            app_state_transition_request(APP_STATE_IDLE);
+        }
     }
     else {
         app_context.input_context.error = true;
@@ -431,13 +438,7 @@ static inline void input_state_cancel_input(void) {
 void input_state_event_handler(const event_t *evt) {
     DEBUG_ASSERT(evt);
 
-    if (app_context.input_context.error) {
-        if (evt->id == EVENT_INPUT_ERROR_DISCARD) {
-            input_state_reset_all_digits();
-            input_state_update_display(false);
-        }
-    }
-    else {
+    if (!app_context.input_context.error) {
         switch (evt->id) {
             case EVENT_KEY_PRESS: {
                 const key_t key = evt->payload.data.unsigned_value;
@@ -541,7 +542,10 @@ void input_state_event_handler(const event_t *evt) {
                         break;
                     }
                     case KEY_ESC: {
-                        input_state_cancel_input();
+                        if (input_state_check_any_digit_set()) {
+                            input_state_process_digit_reset();
+                            input_state_update_display(false);
+                        }
                         break;
                     }
                     default: { return; }
@@ -561,6 +565,11 @@ void input_state_event_handler(const event_t *evt) {
                     }
                     default: { return; }
                 }
+                break;
+            }
+            case EVENT_INPUT_ERROR_DISCARD: {
+                input_state_reset_all_digits();
+                input_state_update_display(false);
                 break;
             }
             default: { return; }

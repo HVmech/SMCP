@@ -13,7 +13,7 @@
 
 #include <common/asm.h>
 
-#define CONST_INPUT_STATE_UPDATE_INTERVAL 1000
+#define CONST_INPUT_STATE_UPDATE_INTERVAL 12000
 
 static inline bool generate_input_update_event(event_bus_t *bus) {
     static bool error_prev = false;
