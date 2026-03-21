@@ -35,7 +35,11 @@ static inline bool generate_motor_telemetry_update_event(event_bus_t *bus) {
             event_bus_post_from_isr(bus, &evt);
             MACRO_ASM_DATA_SYNC_BARRIER;
         }
-        else { result = false; g_current_phase = 0; g_phase_progress_percentage = 0; }
+        else {
+            result = false;
+            g_motor_telemetry.active_phase = 0;
+            g_motor_telemetry.progress_percentage = 0;
+        }
     }
     return result;
 }

@@ -57,9 +57,10 @@ typedef struct {
 typedef struct {
     motion_phase_t motion_phases[PHASE_COUNT];
     bool tail_phase;
-    bool direction;
+    bool reverse_direction;
+    uint32_t total_updates;
 } motion_block_t;
 
-motion_block_t plan_motion(uint32_t total_steps, bool direction);
+motion_block_t plan_motion(uint32_t total_steps, bool reverse);
 
 #endif // SMCP_MOTION_PANNING_SERVICE_H

@@ -25,11 +25,12 @@ static inline void active_state_display_motor_telemetry(uint8_t current_phase, u
     LCD_set_string(1, 5, ", Pr: ", false);
     LCD_set_integer(1, 11, phase_progress_percentage, false);
     LCD_set_char(1, 14, '%', false);
+    //debug_serial_printf("ppp = %u\r\n", phase_progress_percentage);
 }
 
 static inline void active_state_display(void) {
     LCD_set_string(0, 0, "ROTATING:", false);
-    active_state_display_motor_telemetry(g_current_phase, g_phase_progress_percentage);
+    active_state_display_motor_telemetry(g_motor_telemetry.active_phase, g_motor_telemetry.progress_percentage);
     LCD_update_request(false);
 }
 
@@ -118,7 +119,7 @@ void active_state_event_handler(const event_t *evt) {
             break;
         }
         case EVENT_MOTOR_TELEMETRY_UPDATE: {
-            active_state_display_motor_telemetry(g_current_phase, g_phase_progress_percentage);
+            active_state_display_motor_telemetry(g_motor_telemetry.active_phase, g_motor_telemetry.progress_percentage);
             LCD_update_request(false);
             break;
         }

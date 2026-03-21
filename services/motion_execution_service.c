@@ -15,6 +15,7 @@
 #include <drivers/time_driver.h>
 #include <drivers/SysTick_driver.h>
 
+#include <common/utils.h>
 #include <common/debug_assert.h>
 
 #include <libopencm3/stm32/rcc.h>
@@ -99,7 +100,7 @@ void motion_executor_start(motion_block_t* block) { // Запуск выполн
     config.current_phase = PHASE_J1; // Установка первой фазы
     motion_phase_t* phase_handler = &config.current_block.motion_phases[config.current_phase]; // Загружаемая фаза
 
-    debug_serial_printf("dir = %d, tail = %d\r\n", config.current_block.direction, config.current_block.tail_phase);
+    debug_serial_printf("dir = %d, tail = %d\r\n", config.current_block.reverse_direction, config.current_block.tail_phase);
     for (uint8_t i = 0; i < PHASE_COUNT; ++i) {
         debug_serial_printf("upd = %d, f0 = %d, df0 = %d, ddf0 = %d\r\n", config.current_block.motion_phases[i].update_steps, config.current_block.motion_phases[i].f0, config.current_block.motion_phases[i].df0, config.current_block.motion_phases[i].ddf0);
     }
@@ -128,7 +129,7 @@ void motion_executor_start(motion_block_t* block) { // Запуск выполн
     set_motion_control_enable(true); // Включение управления
     delay_ms(CONST_ENA_DELAY_TIME_MS);
 
-    set_motion_control_direction(config.current_block.direction); // Установка направления
+    set_motion_control_direction(config.current_block.reverse_direction); // Установка направления
     delay_ms(CONST_DIR_DELAY_TIME_MS);
 
     step_timer_start(); // Запуск таймера
@@ -167,14 +168,38 @@ void motion_executor_notify(bool state) {
 }
 
 void motion_executor_telemetry_update(void) {
-    g_current_phase = config.current_phase;
+    uint32_t phase_updates_milestone = 0;
 
-    const uint32_t total_phase_updates = config.current_block.motion_phases[config.current_phase].update_steps;
-    if (total_phase_updates) {
-        g_phase_progress_percentage = (total_phase_updates - config.phase_steps_left) * 100 / total_phase_updates;
+    for (uint8_t i = 0; i <= config.current_phase; ++i) {
+        phase_updates_milestone += ((i == PHASE_TAIL) ? 1 : config.current_block.motion_phases[i].update_steps);
+    }
+
+    g_motor_telemetry.active_phase = config.current_phase;
+
+    if (config.current_phase == PHASE_TAIL) {
+        g_motor_telemetry.progress_percentage = 100;
     }
     else {
-        g_phase_progress_percentage = 100;
+        //uint32_t percentage = ((phase_updates_milestone - config.phase_steps_left) * 1000) / config.current_block.total_updates;
+        //g_motor_telemetry.progress_percentage = (percentage + 5) / 10;
+        uint32_t div = config.current_block.total_updates;
+        uint32_t mul1 = phase_updates_milestone - config.phase_steps_left;
+        uint32_t temp_gcd = gcd(mul1, div);
+        mul1 /= temp_gcd;
+        div /= temp_gcd;
+
+        uint32_t mul2 = 1000;
+        temp_gcd = gcd(mul2, div);
+        mul2 /= temp_gcd;
+        div /= temp_gcd;
+
+        //debug_serial_printf("mul1 = %u\r\n", mul1);
+        //debug_serial_printf("mul2 = %u\r\n", mul2);
+        //debug_serial_printf("div = %u\r\n", div);
+
+        DEBUG_ASSERT((uint64_t)mul1 * (uint64_t)mul2 < UINT32_MAX);
+
+        g_motor_telemetry.progress_percentage = mul1 * mul2 / div;
     }
 }
 

@@ -7,21 +7,13 @@
 #include <services/motion_controller_service.h>
 #include <services/motion_execution_service.h>
 
+#include <drivers/time_driver.h>
 #include <drivers/SysTick_driver.h>
 
+#include <common/utils.h>
 #include <common/debug_assert.h>
 
 static motion_controller_state_t controller = {0};
-
-static inline uint32_t gcd(uint32_t a, uint32_t b) {
-    uint32_t temp;
-    while (b != 0) {
-        temp = b;
-        b = a % b;
-        a = temp;
-    }
-    return a;
-}
 
 static inline uint32_t angle_to_steps(int32_t angle_input) {
     const uint32_t abs_angle = (angle_input >= 0) ? angle_input : -angle_input;
@@ -76,7 +68,7 @@ void motion_controller_prepare(int32_t angle) {
     DEBUG_ASSERT(controller.bus);
     motion_controller_reset();
 
-    bool direction = (angle >= 0);
+    bool reverse = (angle < 0);
     uint32_t steps = angle_to_steps(angle);
 
     if (steps == 0) { return; }
@@ -84,7 +76,7 @@ void motion_controller_prepare(int32_t angle) {
     debug_serial_printf("r = %u\r\n", repetitions);
     debug_serial_printf("steps = %u\r\n", steps);
 
-    controller.block = plan_motion(steps, direction);
+    controller.block = plan_motion(steps, reverse);
     controller.prepared = true;
 
     event_t evt = {0};
@@ -96,13 +88,13 @@ void motion_controller_prepare(int32_t angle) {
     event_bus_post(controller.bus, &evt);
 }
 
-void motion_controller_prepare_test(bool direction, int32_t f) {
+void motion_controller_prepare_test(bool reverse, int32_t f) {
     DEBUG_ASSERT(controller.bus);
     motion_controller_reset();
 
     //if (f < f_min) { return; }
 
-    controller.block.direction = direction;
+    controller.block.reverse_direction = reverse;
     controller.block.motion_phases[PHASE_C].ddf0 = 0;
     controller.block.motion_phases[PHASE_C].df0 = 0;
     controller.block.motion_phases[PHASE_C].f0 = f;
@@ -144,7 +136,7 @@ void motion_controller_reset(void)
     controller.prepared = false;
     controller.busy = false;
 
-    controller.block.direction = false;
+    controller.block.reverse_direction = false;
     controller.block.tail_phase = false;
 
     for (int i = 0; i < PHASE_COUNT; ++i)
@@ -164,7 +156,10 @@ void motion_controller_service_event_handler(const event_t *evt) {
             if (controller.busy) { return; }
             if (evt->payload.type != EVENT_DATA_SIGNED) { return; }
 
-            debug_serial_printf("angle = %u\r\n", evt->payload.data.signed_value);
+            //debug_serial_printf("angle = %d\r\n", evt->payload.data.signed_value);
+
+            //debug_serial_printf("delay = %u\r\n", 10000);
+            //delay_ms(10000);
 
             motion_controller_prepare(evt->payload.data.signed_value);
             break;

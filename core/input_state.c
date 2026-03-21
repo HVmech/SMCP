@@ -1,6 +1,8 @@
-#include "core/app_state.h"
 #include <core/input_state.h>
 
+#include <globals/keyboard_globals.h>
+
+#include <core/app_state.h>
 #include <core/app_context.h>
 #include <core/input_data.h>
 #include <core/service_timer.h>
@@ -30,7 +32,9 @@ static inline void input_state_display_angle(uint8_t row, bool right_alignment) 
     const uint8_t integer_fields = MAX_VALUE((MAX_VALUE(app_context.input_context.data.integer_count, 1)), integer_cursor);
 
     const uint8_t fractional_cursor = app_context.input_context.data.input_part ? app_context.input_context.data.cursor_position : 0;
-    const uint8_t fractional_fields = MAX_VALUE(app_context.input_context.data.fractional_count, fractional_cursor);
+    const uint8_t fractional_pos = MAX_VALUE(app_context.input_context.data.fractional_count, fractional_cursor);
+    const bool fractional_pos_source = fractional_cursor >= app_context.input_context.data.fractional_count;
+    const uint8_t fractional_fields = app_context.input_context.data.input_part ? (fractional_pos_source ? MIN_VALUE(fractional_pos + 1, INPUT_FRACTIONAL_DIGITS) : fractional_pos) : fractional_pos;
 
     const uint8_t dot_fields = fractional_fields ? 1 : 0;
 
@@ -120,7 +124,7 @@ static inline void input_state_process_dot() {
 static inline void input_state_process_cursor_shift(bool forward) {
     if (app_context.input_context.data.input_part) {
         if (forward) {
-            if (app_context.input_context.data.cursor_position < INPUT_FRACTIONAL_DIGITS) {
+            if (app_context.input_context.data.cursor_position < INPUT_FRACTIONAL_DIGITS - 1 || (app_context.input_context.data.cursor_position == INPUT_FRACTIONAL_DIGITS - 1 && app_context.input_context.data.fractional_digits[INPUT_FRACTIONAL_DIGITS - 1] != 0)) {
                 ++app_context.input_context.data.cursor_position;
             }
         }
@@ -152,7 +156,7 @@ static inline void input_state_process_cursor_shift(bool forward) {
             }
             else {
                 app_context.input_context.data.input_part = true;
-                app_context.input_context.data.cursor_position = 1;
+                app_context.input_context.data.cursor_position = 0;
             }
         }
         else {
@@ -166,9 +170,9 @@ static inline void input_state_process_cursor_shift(bool forward) {
 // Смена знака
 static inline void input_state_process_sign_change(void) {
     if (app_context.input_context.mode) {
-        if (input_state_check_any_digit_set()) {
+        //if (input_state_check_any_digit_set()) {
             app_context.input_context.data.sign = !app_context.input_context.data.sign;
-        }
+        //}
     }
 }
 
@@ -253,6 +257,13 @@ static inline void input_state_update_value(void) {
     for (uint8_t i = 0; i < INPUT_FRACTIONAL_DIGITS; ++i) {
         app_context.input_context.value *= 10;
         app_context.input_context.value += app_context.input_context.data.fractional_digits[i];
+    }
+
+    if (app_context.input_context.mode) {
+        app_context.input_context.value = app_context.input_context.data.sign ? -app_context.input_context.value : app_context.input_context.value;
+    }
+    else {
+        app_context.input_context.value = app_context.current_angle - app_context.input_context.value;
     }
 }
 
@@ -343,22 +354,22 @@ static inline void input_state_process_integer_digit_cyclic_change(bool incremen
 static inline void input_state_process_fractional_digit_cyclic_change(bool increment) {
     const uint8_t active_digit = app_context.input_context.data.cursor_position;
 
-    if (active_digit != INPUT_FRACTIONAL_DIGITS && active_digit < app_context.input_context.data.fractional_count) {
+    if (active_digit < INPUT_FRACTIONAL_DIGITS) {
         if (increment) {
             if (app_context.input_context.data.fractional_digits[active_digit] == 9) {
-                if (active_digit + 1 == app_context.input_context.data.fractional_count) {
-                    app_context.input_context.data.fractional_digits[active_digit] = 1;
-                }
-                else {
+                //if (active_digit + 1 == app_context.input_context.data.fractional_count) {
+                //    app_context.input_context.data.fractional_digits[active_digit] = 1;
+                //}
+                //else {
                     app_context.input_context.data.fractional_digits[active_digit] = 0;
-                }
+                //}
             }
             else {
                 ++app_context.input_context.data.fractional_digits[active_digit];
             }
         }
         else {
-            if (app_context.input_context.data.fractional_digits[active_digit] == 0 || (active_digit + 1 == app_context.input_context.data.fractional_count && app_context.input_context.data.fractional_digits[active_digit] == 1)) {
+            if (app_context.input_context.data.fractional_digits[active_digit] == 0) { //|| (active_digit + 1 == app_context.input_context.data.fractional_count && app_context.input_context.data.fractional_digits[active_digit] == 1)) {
                 app_context.input_context.data.fractional_digits[active_digit] = 9;
             }
             else {
@@ -389,8 +400,13 @@ static inline void input_state_process_digit_reset(void) {
             input_state_process_cursor_shift(false);
         }
         else {
-            input_state_integer_digits_shift(INPUT_INTEGER_DIGITS - 1, false);
-            app_context.input_context.data.integer_digits[0] = 0;
+            if (app_context.input_context.data.integer_count) {
+                app_context.input_context.data.integer_digits[0] = 0;
+                input_state_integer_digits_shift(INPUT_INTEGER_DIGITS - 1, false);
+            }
+            else {
+                input_state_process_cursor_shift(false);
+            }
         }
     }
     else {
@@ -412,7 +428,7 @@ static inline void input_state_process_apply() {
     const bool validation = input_state_validate_input();
 
     if (validation) {
-        if ((!app_context.input_context.mode && app_context.input_context.value != app_context.current_angle) || (app_context.input_context.mode && app_context.input_context.value)) {
+        if (app_context.input_context.value) {
             app_state_transition_request(APP_STATE_ACTIVE);
         }
         else {
@@ -434,145 +450,159 @@ static inline void input_state_cancel_input(void) {
     app_state_transition_request(APP_STATE_IDLE);
 }
 
+static inline bool inpust_state_check_esc_possible(void) {
+    bool result = true;
+    if (!input_state_check_any_digit_set()) {
+        if (app_context.input_context.data.input_part) {
+            result = true;
+        }
+        else {
+            result = false;
+        }
+    }
+    return result;
+}
+
 // Обработчик событий ввода
 void input_state_event_handler(const event_t *evt) {
     DEBUG_ASSERT(evt);
 
     if (!app_context.input_context.error) {
-        switch (evt->id) {
-            case EVENT_KEY_PRESS: {
-                const key_t key = evt->payload.data.unsigned_value;
-
-                switch (key) {
-                    case KEY_0:
-                    case KEY_1:
-                    case KEY_2:
-                    case KEY_3:
-                    case KEY_4:
-                    case KEY_5:
-                    case KEY_6:
-                    case KEY_7:
-                    case KEY_8:
-                    case KEY_9: {
-                        const uint8_t digit = matrix_keyboard_key_to_digit(key);
-                        input_state_process_digit_set(digit);
-                        input_state_update_display(false);
-                        break;
-                    }
-                    case KEY_DOT: {
-                        input_state_process_dot();
-                        input_state_update_display(false);
-                        break;
-                    }
-                    case KEY_UP: {
-                        input_state_process_digit_cyclic_change(true);
-                        input_state_update_display(false);
-                        break;
-                    }
-                    case KEY_DOWN: {
-                        input_state_process_digit_cyclic_change(false);
-                        input_state_update_display(false);
-                        break;
-                    }
-                    case KEY_RIGHT: {
-                        input_state_process_cursor_shift(true);
-                        input_state_update_display(false);
-                        break;
-                    }
-                    case KEY_LEFT: {
-                        input_state_process_cursor_shift(false);
-                        input_state_update_display(false);
-                        break;
-                    }
-                    case KEY_SIGN: {
-                        input_state_process_sign_change();
-                        input_state_update_display(false);
-                        break;
-                    }
-                    case KEY_ESC: {
-                        if (input_state_check_any_digit_set()) {
-                            input_state_process_digit_reset();
-                            input_state_update_display(false);
-                        }
-                        else {
-                            input_state_cancel_input();
-                        }
-                        break;
-                    }
-                    default: { return; }
-                }
-                break;
-            }
-            case EVENT_KEY_REPEAT: {
-                const key_t key = evt->payload.data.unsigned_value;
-                switch (key) {
-                    case KEY_0:
-                    case KEY_1:
-                    case KEY_2:
-                    case KEY_3:
-                    case KEY_4:
-                    case KEY_5:
-                    case KEY_6:
-                    case KEY_7:
-                    case KEY_8:
-                    case KEY_9: {
-                        const uint8_t digit = matrix_keyboard_key_to_digit(key);
-                        input_state_process_digit_set(digit);
-                        input_state_update_display(false);
-                        break;
-                    }
-                    case KEY_UP: {
-                        input_state_process_digit_cyclic_change(true);
-                        input_state_update_display(false);
-                        break;
-                    }
-                    case KEY_DOWN: {
-                        input_state_process_digit_cyclic_change(false);
-                        input_state_update_display(false);
-                        break;
-                    }
-                    case KEY_RIGHT: {
-                        input_state_process_cursor_shift(true);
-                        input_state_update_display(false);
-                        break;
-                    }
-                    case KEY_LEFT: {
-                        input_state_process_cursor_shift(false);
-                        input_state_update_display(false);
-                        break;
-                    }
-                    case KEY_ESC: {
-                        if (input_state_check_any_digit_set()) {
-                            input_state_process_digit_reset();
-                            input_state_update_display(false);
-                        }
-                        break;
-                    }
-                    default: { return; }
-                }
-                break;
-            }
-            case EVENT_KEY_RELEASE: {
-                const key_t key = evt->payload.data.unsigned_value & ((1 << 8) - 1);
-                const uint32_t duration = evt->payload.data.unsigned_value >> 8;
-
-                switch (key) {
-                    case KEY_ENT: {
-                        if (duration <= LONG_PRESS_DURATION_MS) {
-                            input_state_process_apply();
-                        }
-                        break;
-                    }
-                    default: { return; }
-                }
-                break;
-            }
-            case EVENT_INPUT_ERROR_DISCARD: {
+        if (evt->id == EVENT_INPUT_ERROR_DISCARD) {
                 input_state_reset_all_digits();
                 input_state_update_display(false);
-                break;
+        }
+        else if (!g_keyboard_block) {
+            switch (evt->id) {
+                case EVENT_KEY_PRESS: {
+                    const key_t key = evt->payload.data.unsigned_value;
+
+                    switch (key) {
+                        case KEY_0:
+                        case KEY_1:
+                        case KEY_2:
+                        case KEY_3:
+                        case KEY_4:
+                        case KEY_5:
+                        case KEY_6:
+                        case KEY_7:
+                        case KEY_8:
+                        case KEY_9: {
+                            const uint8_t digit = matrix_keyboard_key_to_digit(key);
+                            input_state_process_digit_set(digit);
+                            input_state_update_display(false);
+                            break;
+                        }
+                        case KEY_DOT: {
+                            input_state_process_dot();
+                            input_state_update_display(false);
+                            break;
+                        }
+                        case KEY_UP: {
+                            input_state_process_digit_cyclic_change(true);
+                            input_state_update_display(false);
+                            break;
+                        }
+                        case KEY_DOWN: {
+                            input_state_process_digit_cyclic_change(false);
+                            input_state_update_display(false);
+                            break;
+                        }
+                        case KEY_RIGHT: {
+                            input_state_process_cursor_shift(true);
+                            input_state_update_display(false);
+                            break;
+                        }
+                        case KEY_LEFT: {
+                            input_state_process_cursor_shift(false);
+                            input_state_update_display(false);
+                            break;
+                        }
+                        case KEY_SIGN: {
+                            input_state_process_sign_change();
+                            input_state_update_display(false);
+                            break;
+                        }
+                        case KEY_ESC: {
+                            if (inpust_state_check_esc_possible()) {
+                                input_state_process_digit_reset();
+                                input_state_update_display(false);
+                            }
+                            else {
+                                input_state_cancel_input();
+                            }
+                            break;
+                        }
+                        default: { return; }
+                    }
+                    break;
+                }
+                case EVENT_KEY_REPEAT: {
+                    const key_t key = evt->payload.data.unsigned_value;
+                    switch (key) {
+                        case KEY_0:
+                        case KEY_1:
+                        case KEY_2:
+                        case KEY_3:
+                        case KEY_4:
+                        case KEY_5:
+                        case KEY_6:
+                        case KEY_7:
+                        case KEY_8:
+                        case KEY_9: {
+                            const uint8_t digit = matrix_keyboard_key_to_digit(key);
+                            input_state_process_digit_set(digit);
+                            input_state_update_display(false);
+                            break;
+                        }
+                        case KEY_UP: {
+                            input_state_process_digit_cyclic_change(true);
+                            input_state_update_display(false);
+                            break;
+                        }
+                        case KEY_DOWN: {
+                            input_state_process_digit_cyclic_change(false);
+                            input_state_update_display(false);
+                            break;
+                        }
+                        case KEY_RIGHT: {
+                            input_state_process_cursor_shift(true);
+                            input_state_update_display(false);
+                            break;
+                        }
+                        case KEY_LEFT: {
+                            input_state_process_cursor_shift(false);
+                            input_state_update_display(false);
+                            break;
+                        }
+                        case KEY_ESC: {
+                            if (inpust_state_check_esc_possible()) {
+                                input_state_process_digit_reset();
+                                input_state_update_display(false);
+                            }
+                            break;
+                        }
+                        default: { return; }
+                    }
+                    break;
+                }
+                case EVENT_KEY_RELEASE: {
+                    const key_t key = evt->payload.data.unsigned_value & ((1 << 8) - 1);
+                    const uint32_t duration = evt->payload.data.unsigned_value >> 8;
+
+                    switch (key) {
+                        case KEY_ENT: {
+                            if (duration <= LONG_PRESS_DURATION_MS) {
+                                input_state_process_apply();
+                            }
+                            break;
+                        }
+                        default: { return; }
+                    }
+                    break;
+                }
+                default: { return; }
             }
-            default: { return; }
         }
     }
 }

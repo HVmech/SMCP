@@ -1,6 +1,9 @@
-//#include <drivers/time_driver.h>
 #include <services/motion_planning_service.h>
+
 #include <services/debug_serial_service.h>
+
+#include <drivers/time_driver.h>
+
 #include <common/debug_assert.h>
 
 const uint32_t f_update = 10000;
@@ -22,7 +25,7 @@ const int32_t ddf_max = j_max; // Максимальное изменение у
 const uint32_t repetitions_calc = f_tim / f_update; // Количество обновлений для генерации прерывания
 const uint32_t repetitions = repetitions_calc > 255 ? 255 : (repetitions_calc < 10 ? 10 : repetitions_calc);
 
-motion_block_t plan_motion(uint32_t total_steps, bool direction) {
+motion_block_t plan_motion(uint32_t total_steps, bool reverse) {
     const uint32_t total_updates = total_steps / repetitions;
     const uint32_t tail_phase_steps = total_steps % repetitions;
 
@@ -38,7 +41,8 @@ motion_block_t plan_motion(uint32_t total_steps, bool direction) {
         result.motion_phases[i].update_steps = 0;
     } 
     result.tail_phase = false;
-    result.direction = direction;
+    result.reverse_direction = reverse;
+    result.total_updates = tail_phase_steps ? total_updates + 1 : total_updates;
 
     // Шаги в фазах J, A, C:
     uint32_t Nj = 0;
@@ -67,7 +71,7 @@ motion_block_t plan_motion(uint32_t total_steps, bool direction) {
     debug_serial_printf("Phase J1:\r\n");
     const int32_t f_max_div_2 = f_max >> 1;
     while (df + ddf <= df_max && f + df <= f_max_div_2) {
-        if (Nj * 4 >= total_updates) { break; }
+        if ((Nj + 1) * 4 > total_updates) { break; }
 
         f  += df;
         df += ddf;
@@ -92,7 +96,7 @@ motion_block_t plan_motion(uint32_t total_steps, bool direction) {
 
     debug_serial_printf("Phase A1:\r\n");
     while (f + df <= f_max - delta_J2) {
-        if (Nj * 4 + Na * 2 >= total_updates) { break; }
+        if (Nj * 4 + (Na + 1) * 2 > total_updates) { break; }
 
         f += df;
         ++Na;
@@ -195,6 +199,9 @@ motion_block_t plan_motion(uint32_t total_steps, bool direction) {
     DEBUG_ASSERT(f == f_min);
     DEBUG_ASSERT(df == 0);
     DEBUG_ASSERT(Nj * 4 + Na * 2 + Nc == total_updates);
+
+    //debug_serial_printf("delay = %u\r\n", 10000);
+    //delay_ms(10000);
 
     return result;
 }

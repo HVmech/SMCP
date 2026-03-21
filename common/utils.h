@@ -12,5 +12,6 @@ void memcpy(void *dst, const void *src, uint16_t size); // Копировани�
 void* memset(void* dest, int val, unsigned int count); // Заполнение памяти побайтово
 uint8_t digcnt(uint32_t value); // Количество разрядов в числе, если число - 0, то возврат 0
 uint8_t trzercnt(uint32_t value, uint8_t digit_count); // Количество замыкающих нулей числа
+uint32_t gcd(uint32_t a, uint32_t b); // Определение наибольшего общего делителя
 
 #endif // SMCP_UTILS_H

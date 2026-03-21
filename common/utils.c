@@ -84,3 +84,13 @@ uint8_t trzercnt(uint32_t value, uint8_t digit_count) {
 
     return trailing_zeros;
 }
+
+uint32_t gcd(uint32_t a, uint32_t b) {
+    uint32_t temp;
+    while (b != 0) {
+        temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
