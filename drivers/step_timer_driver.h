@@ -19,6 +19,10 @@ void step_timer_set_period(uint32_t arr_value); // Установка перио
 void step_timer_set_ccr(uint32_t ccr_value); // Установка ширины импульса
 void step_timer_set_rcr(uint16_t rcr_value); // Установка количества срабатываний для прерывания
 
+uint16_t step_timer_get_autoreload(void);
+uint16_t step_timer_get_compare(void);
+uint16_t step_timer_get_counter(void);
+
 void step_timer_disable_output(void);
 
 // Включение/отключение прерывания
@@ -29,5 +33,7 @@ void step_timer_reset_update_flag(void);
 void step_timer_reset_breakup_flag(void);
 
 void step_timer_update_timer(void);
+
+void step_timer_recovery(void);
 
 #endif // SMCP_STEP_TIMER_DRIVER_H

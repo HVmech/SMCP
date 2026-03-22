@@ -83,6 +83,18 @@ void step_timer_set_rcr(uint16_t rcr_value) {
     timer_set_repetition_counter(TIM1, rcr_value);
 }
 
+uint16_t step_timer_get_autoreload(void) {
+    return TIM_ARR(TIM1);
+}
+
+uint16_t step_timer_get_compare(void) {
+    return TIM_CCR1(TIM1);
+}
+
+uint16_t step_timer_get_counter(void) {
+    return TIM_CNT(TIM1);
+}
+
 void step_timer_disable_output(void) {
     timer_disable_oc_output(TIM1, TIM_OC1);
     gpio_clear(GPIOA, GPIO8);
@@ -112,4 +124,9 @@ void step_timer_reset_breakup_flag(void) {
 void step_timer_update_timer(void) {
     timer_generate_event(TIM1, TIM_EGR_UG);
     timer_clear_flag(TIM1, TIM_SR_UIF);
+}
+
+void step_timer_recovery(void) {
+    timer_enable_oc_output(TIM1, TIM_OC1);
+    timer_enable_break_main_output(TIM1);
 }

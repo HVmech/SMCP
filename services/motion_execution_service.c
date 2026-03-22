@@ -25,6 +25,10 @@
 
 static motion_executor_config_t config = {0};
 
+static uint16_t arr = 0;
+static uint16_t ccr = 0;
+static uint16_t cnt = 0;
+
 const uint32_t CONST_ENA_DELAY_TIME_MS = 10;
 const uint32_t CONST_DIR_DELAY_TIME_MS = 1;
 
@@ -32,12 +36,21 @@ const uint32_t CONST_DIR_DELAY_TIME_MS = 1;
 
 static inline uint32_t get_period(uint32_t freq_hz) { return f_tim / freq_hz; } // Расчет периода для заданной частоты в тактах таймера
 
+static inline void stop_motion(bool state) {
+    step_timer_stop();
+    config.is_running = false;
+    g_generate_motor_telemetry_updates = false;
+
+    arr = step_timer_get_autoreload();
+    ccr = step_timer_get_compare();
+    cnt = step_timer_get_counter();
+
+    motion_executor_notify(state);
+}
+
 static inline void load_next_phase(void) { // Загрузка следующей фазы
     if (config.current_phase == PHASE_TAIL) { // Завершающая фаза
-        step_timer_stop();
-        config.is_running = false;
-        g_generate_motor_telemetry_updates = false;
-        motion_executor_notify(true);
+        stop_motion(true);
         return;
     }
     
@@ -45,10 +58,7 @@ static inline void load_next_phase(void) { // Загрузка следующе�
         ++config.current_phase; // Переход к следующей фазе
 
         if (config.current_phase == PHASE_TAIL && !config.current_block.tail_phase) { // Нет завершающей фазы
-            step_timer_stop();
-            config.is_running = false;
-            g_generate_motor_telemetry_updates = false;
-            motion_executor_notify(true);
+            stop_motion(true);
             return;
         }
     } while (config.current_block.motion_phases[config.current_phase].update_steps == 0 && config.current_phase < PHASE_TAIL);
@@ -61,12 +71,12 @@ static inline void load_next_phase(void) { // Загрузка следующе�
     config.ddf = phase_handler->ddf0;
 
     if (config.current_phase == PHASE_TAIL) {
-        config.phase_steps_left = 1;
+        config.phase_updates_left = 1;
         step_timer_set_rcr(phase_handler->update_steps - 1);
         step_timer_update_timer();
     }
     else {
-        config.phase_steps_left = phase_handler->update_steps;
+        config.phase_updates_left = phase_handler->update_steps;
     }
 }
 
@@ -84,7 +94,7 @@ void motion_executor_init(board_pin_e dir_pin, board_pin_e ena_pin) {
 
     step_timer_init(&pwm_config);
     motion_control_init(dir_pin, ena_pin);
-    
+
     config.is_initialized = true;
 }
 
@@ -117,13 +127,13 @@ void motion_executor_start(motion_block_t* block) { // Запуск выполн
     config.f = phase_handler->f0;
     config.df = phase_handler->df0;
     config.ddf = phase_handler->ddf0;
-    config.phase_steps_left = phase_handler->update_steps;
+    config.phase_updates_left = phase_handler->update_steps;
+    config.phase_updates_made = 0; // Сброс счетчика обновлений
 
     step_timer_set_period(get_period(config.f)); // Настройка частоты
     step_timer_enable_irq(); // Включение прерываний
 
     config.is_running = true;
-
     g_generate_motor_telemetry_updates = true;
 
     set_motion_control_enable(true); // Включение управления
@@ -139,12 +149,15 @@ void motion_executor_start(motion_block_t* block) { // Запуск выполн
 void motion_executor_stop(void) { // Программная остановка выполнения
     step_timer_disable_irq(); // Отключение прерываний таймера
     step_timer_disable_output(); // Отключение выхода сигнала
-    step_timer_stop(); // Остановка таймера
+    //step_timer_stop(); // Остановка таймера
 
+    //set_motion_control_enable(false); // Отключение двигателя
+
+    //config.is_running = false;
+    //g_generate_motor_telemetry_updates = false;
+
+    stop_motion(false);
     set_motion_control_enable(false); // Отключение двигателя
-
-    config.is_running = false;
-    g_generate_motor_telemetry_updates = false;
 }
 
 //bool motion_executor_is_running(void) { return config.is_running; }
@@ -168,11 +181,11 @@ void motion_executor_notify(bool state) {
 }
 
 void motion_executor_telemetry_update(void) {
-    uint32_t phase_updates_milestone = 0;
+    //uint32_t phase_updates_milestone = 0;
 
-    for (uint8_t i = 0; i <= config.current_phase; ++i) {
-        phase_updates_milestone += ((i == PHASE_TAIL) ? 1 : config.current_block.motion_phases[i].update_steps);
-    }
+    //for (uint8_t i = 0; i <= config.current_phase; ++i) {
+    //    phase_updates_milestone += ((i == PHASE_TAIL) ? 1 : config.current_block.motion_phases[i].update_steps);
+    //}
 
     g_motor_telemetry.active_phase = config.current_phase;
 
@@ -183,7 +196,8 @@ void motion_executor_telemetry_update(void) {
         //uint32_t percentage = ((phase_updates_milestone - config.phase_steps_left) * 1000) / config.current_block.total_updates;
         //g_motor_telemetry.progress_percentage = (percentage + 5) / 10;
         uint32_t div = config.current_block.total_updates;
-        uint32_t mul1 = phase_updates_milestone - config.phase_steps_left;
+        //uint32_t mul1 = phase_updates_milestone - config.phase_updates_left;
+        uint32_t mul1 = config.phase_updates_made;
         uint32_t temp_gcd = gcd(mul1, div);
         mul1 /= temp_gcd;
         div /= temp_gcd;
@@ -203,6 +217,33 @@ void motion_executor_telemetry_update(void) {
     }
 }
 
+uint32_t motion_executor_get_position_change_in_steps(void) {
+    DEBUG_ASSERT(!config.is_running);
+
+    uint32_t result = 0;
+
+    if (config.current_block.tail_phase) {
+        result = (config.phase_updates_made - 1) * repetitions;
+        result += config.current_block.motion_phases[PHASE_TAIL].update_steps;
+
+        if (cnt > ccr) { ++result; }
+    }
+    else {
+        result = config.phase_updates_made * repetitions;
+    }
+
+    debug_serial_printf("Motion outcome:\r\n");
+    debug_serial_printf("steps made = %u\r\n", result);
+    debug_serial_printf("cnt = %u, ccr = %u, arr = %u\r\n", cnt, ccr, arr);
+    debug_serial_printf("\r\n");
+    
+    return result;
+}
+
+void motion_executor_recovery(void) {
+    step_timer_recovery();
+}
+
 // ======= Обработчики прерываний =======
 
 void TIM1_UP_Handler(void) { // Прерывание обновления фазы
@@ -217,10 +258,11 @@ void TIM1_UP_Handler(void) { // Прерывание обновления фаз
     step_timer_set_period(get_period(config.f));
 
     // 3. Декремент оставшихся обновлений
-    --config.phase_steps_left;
+    --config.phase_updates_left;
+    ++config.phase_updates_made;
 
     // 4. Загрузка следующей фазы, если необходимо
-    if (config.phase_steps_left == 0) { load_next_phase(); }
+    if (config.phase_updates_left == 0) { load_next_phase(); }
 }
 
 void TIM1_BRK_Handler(void) { // Прерывание аварийной остановки
@@ -229,6 +271,5 @@ void TIM1_BRK_Handler(void) { // Прерывание аварийной ост�
 
     if (config.is_running) {
         motion_executor_stop();
-        motion_executor_notify(false);
     }
 }

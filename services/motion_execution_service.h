@@ -1,5 +1,4 @@
 #pragma once
-#include <stdint.h>
 #ifndef SMCP_MOTION_EXECUTION_SERVICE_H
 #define SMCP_MOTION_EXECUTION_SERVICE_H
 
@@ -12,7 +11,8 @@ typedef struct { // Структура конфигурации исполнит
     
     // Текущее состояние
     uint8_t current_phase;
-    uint32_t phase_steps_left;
+    uint32_t phase_updates_left;
+    uint32_t phase_updates_made;
     
     // Динамические параметры (интегрируются)
     int32_t f;
@@ -32,5 +32,7 @@ void motion_executor_stop(void);
 //uint32_t motion_executor_get_current_speed(void);
 void motion_executor_notify(bool state);
 void motion_executor_telemetry_update(void);
+uint32_t motion_executor_get_position_change_in_steps(void);
+void motion_executor_recovery(void);
 
 #endif // SMCP_MOTION_EXECUTION_SERVICE

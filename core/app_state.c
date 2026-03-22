@@ -23,6 +23,6 @@ void app_state_transition_request(app_state_code_t state) {
     event_bus_post(bus, &evt);
 
     g_keyboard_block = true;
-    g_keyboard_block_time = 1000;
+    g_keyboard_block_time = 100;
     service_timer_enable();
 }

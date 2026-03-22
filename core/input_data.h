@@ -5,7 +5,7 @@
 #include <services/motion_controller_service.h>
 
 #define INPUT_INTEGER_DIGITS 3
-#define INPUT_FRACTIONAL_DIGITS ANGLE_PRECISION
+#define INPUT_FRACTIONAL_DIGITS (ANGLE_PRECISION - 1)
 #define INPUT_DIGITS_COUNT (INPUT_INTEGER_DIGITS + INPUT_FRACTIONAL_DIGITS)
 
 typedef struct {

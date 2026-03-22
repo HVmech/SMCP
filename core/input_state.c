@@ -259,11 +259,15 @@ static inline void input_state_update_value(void) {
         app_context.input_context.value += app_context.input_context.data.fractional_digits[i];
     }
 
+    for (uint8_t i = INPUT_FRACTIONAL_DIGITS; i < ANGLE_PRECISION; ++i) {
+        app_context.input_context.value *= 10;
+    }
+
     if (app_context.input_context.mode) {
         app_context.input_context.value = app_context.input_context.data.sign ? -app_context.input_context.value : app_context.input_context.value;
     }
     else {
-        app_context.input_context.value = app_context.current_angle - app_context.input_context.value;
+        app_context.input_context.value = app_context.input_context.value - app_context.current_angle;
     }
 }
 

@@ -7,6 +7,7 @@
 
 #include <services/debug_serial_service.h>
 #include <services/LCD_service.h>
+#include <services/motion_controller_service.h>
 
 #include <drivers/matrix_keyboard_driver.h>
 #include <drivers/time_driver.h>
@@ -18,10 +19,21 @@
 static inline void idle_state_display_angle(uint8_t row, bool right_alignment) {
     DEBUG_ASSERT(row < LCD_HEIGHT);
 
-    const uint8_t digit_fields = digcnt(app_context.current_angle);
+    const uint8_t angle_difference = ANGLE_PRECISION > INPUT_FRACTIONAL_DIGITS ? (ANGLE_PRECISION - INPUT_FRACTIONAL_DIGITS) : 0;
+
+    uint32_t angle_div = 1;
+    for (uint8_t i = 0; i < angle_difference; ++i) {
+        angle_div *= 10;
+    }
+
+    uint32_t angle_value = app_context.current_angle;
+    angle_value += (angle_div >> 1);
+    angle_value /= angle_div;
+
+    const uint8_t digit_fields = digcnt(angle_value);
     const uint8_t integer_fields = MAX_VALUE((digit_fields >= INPUT_FRACTIONAL_DIGITS ? digit_fields - INPUT_FRACTIONAL_DIGITS : 0), 1);
 
-    const uint8_t trailing_zeros_count = digit_fields ? trzercnt(app_context.current_angle, INPUT_FRACTIONAL_DIGITS) : INPUT_FRACTIONAL_DIGITS;
+    const uint8_t trailing_zeros_count = digit_fields ? trzercnt(angle_value, INPUT_FRACTIONAL_DIGITS) : INPUT_FRACTIONAL_DIGITS;
     const uint8_t fractional_fields = INPUT_FRACTIONAL_DIGITS - trailing_zeros_count;
     
     const uint8_t dot_fields = fractional_fields ? 1 : 0;
@@ -30,7 +42,6 @@ static inline void idle_state_display_angle(uint8_t row, bool right_alignment) {
     const uint8_t all_angle_fields = integer_fields + dot_fields + fractional_fields + measurement_fields;
     DEBUG_ASSERT(all_angle_fields);
 
-    uint32_t angle_value = app_context.current_angle;
     const uint8_t start_pos = right_alignment ? LCD_LENGTH - 1 : all_angle_fields - 1;
     uint8_t pos = start_pos;
 

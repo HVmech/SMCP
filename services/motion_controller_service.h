@@ -15,7 +15,8 @@ typedef struct {
     motion_block_t block;
     bool prepared;
     bool busy;
-    event_bus_t *bus;
+    event_bus_t *bus; // ?
+    uint32_t position_in_steps;
 } motion_controller_state_t;
 
 void motion_controller_init(board_pin_e dir_pin, board_pin_e ena_pin);
