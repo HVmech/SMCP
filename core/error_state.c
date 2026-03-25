@@ -13,8 +13,8 @@ static inline void error_state_display(void) {
     LCD_clear_display();
 
     LCD_set_string(CONST_ERROR_STATE_INFO_ROW, 0, "ERROR: ", false);
-    LCD_set_string(CONST_ERROR_STATE_INFO_ROW, 7, "PRESS", true);
-    LCD_set_string(CONST_ERROR_STATE_INFO_ROW + 1, 0, "ESC FOR RECOVERY", true);
+    LCD_set_string(CONST_ERROR_STATE_INFO_ROW, 7, "E-STOP", true);
+    LCD_set_string(CONST_ERROR_STATE_INFO_ROW + 1, 0, "ESC FOR RECOVERY", false);
 
     LCD_update_request(false);
 }

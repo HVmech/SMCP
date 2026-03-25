@@ -15,7 +15,7 @@
 #define LCD_CHAR_NULL 0x30
 #define LCD_CHAR_DEGREE 0xDF
 
-#define CONST_LCD_BLINK_INTERVAL 400
+#define CONST_LCD_BLINK_INTERVAL 600
 
 void LCD_set_char(uint8_t row, uint8_t column, unsigned char ch, bool blink);
 void LCD_set_cursor(uint8_t row, uint8_t column, bool visible);
@@ -26,6 +26,9 @@ void LCD_clear_display(void);
 
 void LCD_update_request(bool from_isr);
 
+void LCD_handler(const event_t *evt_inp);
 void LCD_test_helper_handler(const event_t *evt_inp);
+
+void LCD_init(void);
 
 #endif // SMCP_LCD_SERVICE_H

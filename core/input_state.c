@@ -405,8 +405,8 @@ static inline void input_state_process_digit_reset(void) {
         }
         else {
             if (app_context.input_context.data.integer_count) {
-                app_context.input_context.data.integer_digits[0] = 0;
                 input_state_integer_digits_shift(INPUT_INTEGER_DIGITS - 1, false);
+                app_context.input_context.data.integer_digits[0] = 0;
             }
             else {
                 input_state_process_cursor_shift(false);
@@ -443,7 +443,7 @@ static inline void input_state_process_apply() {
         app_context.input_context.error = true;
 
         LCD_clear_line(CONST_INPUT_STATE_ACTIVE_ROW);
-        LCD_set_string(CONST_INPUT_STATE_ACTIVE_ROW, 0, "INCORRECT INPUT!", true);
+        LCD_set_string(CONST_INPUT_STATE_ACTIVE_ROW, 1, "INCORRECT INPUT", true);
 
         LCD_update_request(false);
         service_timer_enable();

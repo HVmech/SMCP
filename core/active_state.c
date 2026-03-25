@@ -24,14 +24,14 @@ static inline void active_state_display_motor_telemetry(uint8_t current_phase, u
     LCD_set_string(0, 0, "ROTATING:", false);
     LCD_set_string(1, 0, "Ph: ", false);
     LCD_set_integer(1, 4, current_phase, false);
-    LCD_set_string(1, 5, ", Pr: ", false);
+    LCD_set_string(1, 5, " Pr: ", false);
 
     const uint8_t integer_digits = digcnt(phase_progress_percentage / 10);
     const uint8_t integer_digits_count = MAX_VALUE(integer_digits, 1);
-    LCD_set_integer(1, 11, phase_progress_percentage / 10, false);
-    LCD_set_char(1, 11 + integer_digits_count, '.', false);
-    LCD_set_integer(1, 11 + integer_digits_count + 1, phase_progress_percentage % 10, false);
-    LCD_set_char(1, 11 + integer_digits_count + 2, '%', false);
+    LCD_set_integer(1, 10, phase_progress_percentage / 10, false);
+    LCD_set_char(1, 10 + integer_digits_count, '.', false);
+    LCD_set_integer(1, 10 + integer_digits_count + 1, phase_progress_percentage % 10, false);
+    LCD_set_char(1, 10 + integer_digits_count + 2, '%', false);
     //debug_serial_printf("ppp = %u\r\n", phase_progress_percentage);
 }
 

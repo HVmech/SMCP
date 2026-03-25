@@ -13,7 +13,7 @@ void SysTick_init(void) {
     // Настройка SysTick:
     systick_set_reload(ticks); // Перезагрузка с заданным периодом (ticks)
     systick_set_clocksource(STK_CSR_CLKSOURCE_AHB_DIV8); // Источник тактирования: AHB/8
-    nvic_set_priority(NVIC_SYSTICK_IRQ, 4);
+    nvic_set_priority(NVIC_SYSTICK_IRQ, 3);
     systick_interrupt_enable(); // Разрешение прерывания
     systick_counter_enable(); // Запуск таймера
 }

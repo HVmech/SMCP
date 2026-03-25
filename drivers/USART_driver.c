@@ -118,7 +118,7 @@ static inline bool USART_load_config(const USART_config_t *cfg) {
 
     // Настройка NVIC
     uint8_t irq = USART_get_IRQ_number(cfg->port);
-    nvic_set_priority(irq, 5);
+    nvic_set_priority(irq, 8);
     nvic_enable_irq(irq);
 
     // Включение только прерывания RX на старте

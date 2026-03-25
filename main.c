@@ -16,6 +16,8 @@
 #include <drivers/SysTick_driver.h>
 #include <drivers/time_driver.h>
 
+#include <drivers/LCD_driver.h>
+
 #include <common/ring_buffer.h>
 #include <common/asm.h>
 #include <common/board.h>
@@ -101,6 +103,8 @@ int main(void)
     motion_controller_init(PA9, PA10);
     matrix_keyboard_init(&keyboard_config);
 
+    LCD_init();
+
     //event_bus_subscribe(&g_event_bus, EVENT_LED_SERVICE_UPDATE, LED_service_handle_event);
     event_bus_subscribe(&g_event_bus, EVENT_LED_CONTROL, LED_service_handle_event);
     event_bus_subscribe(&g_event_bus, EVENT_USART1_RX, debug_serial_handle_event);
@@ -109,8 +113,6 @@ int main(void)
     event_bus_subscribe(&g_event_bus, EVENT_KEY_PRESS, keyboard_test_helper_handler);
     event_bus_subscribe(&g_event_bus, EVENT_KEY_RELEASE, keyboard_test_helper_handler);
     event_bus_subscribe(&g_event_bus, EVENT_KEY_REPEAT, keyboard_test_helper_handler);
-
-    event_bus_subscribe(&g_event_bus, EVENT_LCD_UPDATE_REQUEST, LCD_test_helper_handler);
 
     state_manager_init();
 

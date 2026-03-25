@@ -10,5 +10,6 @@
 
 typedef float float32_t;
 typedef void (*void_func_ptr_t)(void);
+typedef int (*int_func_ptr_t)(void);
 
 #endif // SMCP_TYPES_H
