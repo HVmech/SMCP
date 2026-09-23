@@ -11,7 +11,7 @@ const uint32_t f_clk = 72000000;
 const uint32_t pwm_prescaler = 36;
 
 const uint32_t v_min = 500;
-const uint32_t v_max = 100000;
+const uint32_t v_max = 25000;
 const uint32_t a_max = 300;
 const uint32_t j_max = 1;
 

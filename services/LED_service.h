@@ -10,7 +10,8 @@
 
 typedef enum {
     LED_BUILTIN = 0,
-    LED_MOTOR_STOP_BUTTON
+    LED_MOTOR_STOP_BUTTON,
+    BUZZER_CONTROL
 } LED_id_t;
 
 typedef struct { // Структура команд диода: действие (ВКЛ / ВЫКЛ) и длительность (мс)

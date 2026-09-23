@@ -29,15 +29,13 @@ static uint16_t arr = 0;
 static uint16_t ccr = 0;
 static uint16_t cnt = 0;
 
-const uint32_t CONST_ENA_DELAY_TIME_MS = 10;
-const uint32_t CONST_DIR_DELAY_TIME_MS = 1;
-
 // ======= Вспомогательные функции =======
 
 static inline uint32_t get_period(uint32_t freq_hz) { return f_tim / freq_hz; } // Расчет периода для заданной частоты в тактах таймера
 
 static inline void stop_motion(bool state) {
     step_timer_stop();
+    set_motion_control_enable(false); // Отключение двигателя
     config.is_running = false;
     g_generate_motor_telemetry_updates = false;
 
@@ -157,7 +155,6 @@ void motion_executor_stop(void) { // Программная остановка �
     //g_generate_motor_telemetry_updates = false;
 
     stop_motion(false);
-    set_motion_control_enable(false); // Отключение двигателя
 }
 
 //bool motion_executor_is_running(void) { return config.is_running; }

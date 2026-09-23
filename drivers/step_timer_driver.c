@@ -44,7 +44,8 @@ void step_timer_init(const step_timer_config_t *cfg) {
 
     // Настройка ШИМ
     timer_set_oc_mode(TIM1, TIM_OC1, TIM_OCM_PWM2); // Режим генерации испульса при превышении CCR
-    timer_set_oc_polarity_low(TIM1, TIM_OC1); // Полярность на старте - LOW
+    timer_set_oc_polarity_high(TIM1, TIM_OC1); // Полярность на старте - LOW
+    //timer_set_oc_polarity_low(TIM1, TIM_OC1); // Полярность на старте - LOW
     timer_set_oc_idle_state_set(TIM1, TIM_OC1);
     timer_set_oc_value(TIM1, TIM_OC1, step_cfg.ccr); // Установка ширины импульса
 

@@ -1,4 +1,5 @@
 #include <drivers/motion_control_driver.h>
+#include <drivers/time_driver.h>
 
 #include <common/debug_assert.h>
 
@@ -7,6 +8,22 @@
 
 static MCU_pin_t dir_pin_info;
 static MCU_pin_t ena_pin_info;
+
+void set_motion_control_enable(bool state) {
+    if (state) {
+        gpio_clear(ena_pin_info.port, ena_pin_info.pin);
+    } else {
+        gpio_set(ena_pin_info.port, ena_pin_info.pin);
+    }
+}
+
+void set_motion_control_direction(bool direction) {
+    if (!direction) {
+        gpio_clear(dir_pin_info.port, dir_pin_info.pin);
+    } else {
+        gpio_set(dir_pin_info.port, dir_pin_info.pin);
+    }
+}
 
 bool motion_control_init(board_pin_e dir_pin, board_pin_e ena_pin) {
     DEBUG_ASSERT(dir_pin < PCNT && ena_pin < PCNT);
@@ -25,6 +42,9 @@ bool motion_control_init(board_pin_e dir_pin, board_pin_e ena_pin) {
     }
     gpio_set_mode(ena_pin_info.port, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, ena_pin_info.pin);
 
+    set_motion_control_enable(false);
+    delay_ms(CONST_ENA_DELAY_TIME_MS);
+
     switch (dir_pin_info.port) { // Включение тактирования соответствующего порта для пина dir
         case GPIOA: { rcc_periph_clock_enable(RCC_GPIOA); break; }
         case GPIOB: { rcc_periph_clock_enable(RCC_GPIOB); break; }
@@ -33,21 +53,8 @@ bool motion_control_init(board_pin_e dir_pin, board_pin_e ena_pin) {
     }
     gpio_set_mode(dir_pin_info.port, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, dir_pin_info.pin);
 
+    set_motion_control_direction(false);
+    delay_ms(CONST_DIR_DELAY_TIME_MS);
+
     return true;
-}
-
-void set_motion_control_enable(bool state) {
-    if (!state) {
-        gpio_clear(ena_pin_info.port, ena_pin_info.pin);
-    } else {
-        gpio_set(ena_pin_info.port, ena_pin_info.pin);
-    }
-}
-
-void set_motion_control_direction(bool direction) {
-    if (!direction) {
-        gpio_clear(dir_pin_info.port, dir_pin_info.pin);
-    } else {
-        gpio_set(dir_pin_info.port, dir_pin_info.pin);
-    }
 }

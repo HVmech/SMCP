@@ -15,7 +15,7 @@ typedef struct { // Контрольная структура диода
 } LED_t;
 
 // Базовые функции
-bool LED_init(board_pin_e pin_code, bool inversion, LED_t* out_config); // Инициализация контрольной структуры
 void LED_set(const LED_t* config, bool state); // Установка состояния ВКЛ / ВЫКЛ
+bool LED_init(board_pin_e pin_code, bool inversion, LED_t* out_config); // Инициализация контрольной структуры
 
 #endif // SMCP_LED_DRIVER_H

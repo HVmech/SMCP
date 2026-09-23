@@ -7,6 +7,7 @@
 #include <core/service_timer.h>
 
 #include <services/debug_serial_service.h>
+#include <services/LED_patterns.h>
 #include <services/LED_service.h>
 #include <services/motion_controller_service.h>
 #include <services/LCD_service.h>
@@ -85,7 +86,7 @@ int main(void)
     };
 
     matrix_keyboard_config_t keyboard_config = {
-        .column_pins = {PA1, PA2, PA3, PA4},
+        .column_pins = {PA4, PA3, PA2, PA1},
         .row_pins = {PB1, PB0, PA7, PA6, PA5}
     };
 
@@ -99,13 +100,14 @@ int main(void)
     service_timer_init(20); // базовый период 20 мс
     if (!debug_serial_init(USART_1, 115200, true, true)) { return -1; }
     LED_service_init_led(LED_BUILTIN, PC13, true);
-    LED_service_init_led(LED_MOTOR_STOP_BUTTON, PB13, false);
+    LED_service_init_led(LED_MOTOR_STOP_BUTTON, PB13, true);
+    LED_service_init_led(BUZZER_CONTROL, PB14, false);
     motion_controller_init(PA9, PA10);
     matrix_keyboard_init(&keyboard_config);
 
     LCD_init();
 
-    //event_bus_subscribe(&g_event_bus, EVENT_LED_SERVICE_UPDATE, LED_service_handle_event);
+    event_bus_subscribe(&g_event_bus, EVENT_LED_SERVICE_UPDATE, LED_service_handle_event);
     event_bus_subscribe(&g_event_bus, EVENT_LED_CONTROL, LED_service_handle_event);
     event_bus_subscribe(&g_event_bus, EVENT_USART1_RX, debug_serial_handle_event);
     //event_bus_subscribe(&g_event_bus, EVENT_MOTOR_ROTATION_PREPARE, motor_test_helper_handler);
@@ -114,6 +116,8 @@ int main(void)
     event_bus_subscribe(&g_event_bus, EVENT_KEY_RELEASE, keyboard_test_helper_handler);
     event_bus_subscribe(&g_event_bus, EVENT_KEY_REPEAT, keyboard_test_helper_handler);
 
+    event_bus_subscribe(&g_event_bus, EVENT_MOTOR_ROTATION_COMPLETE, LED_service_handle_event);
+
     state_manager_init();
 
 #ifdef DEBUG
@@ -121,6 +125,8 @@ int main(void)
 #endif
 
     debug_serial_printf("[%u] System initialized\r\n", get_current_time_ms()); delay_ms(1000); // Отладка
+
+    LED_service_execute(BUZZER_CONTROL, &LED_pattern_heartbeat, false);
 
     while (1) {
         if (event_dispatcher_process()) {

@@ -1,3 +1,4 @@
+#include <services/LED_patterns.h>
 #include <services/LED_service.h>
 
 #include <globals/LED_globals.h>
@@ -93,19 +94,29 @@ void LED_service_update()
 }
 
 void LED_service_handle_event(const event_t *evt) {
-    if (evt->id != EVENT_LED_CONTROL) {
-        return;
-    }
+    switch (evt->id) {
+        case EVENT_LED_CONTROL: {
+            uint32_t val = evt->payload.data.unsigned_value;
+            uint8_t led_id = (uint8_t)(val >> 1);
+            bool state = (val & 1U) ? true : false;
 
-    uint32_t val = evt->payload.data.unsigned_value;
-    uint8_t led_id = (uint8_t)(val >> 1);
-    bool state = (val & 1U) ? true : false;
-
-    if (led_id < CONST_LED_SERVICE_MAX_LEDS && led_id < svc.led_num) {
-        LED_service_set_led_state(led_id, state);
-        debug_serial_printf("[%u] LED CHANGE\n", g_SysTick_cnt);
-    }
-    else {
-        debug_serial_puts("Error: invalid LED id\r\n");
+            if (led_id < CONST_LED_SERVICE_MAX_LEDS && led_id < svc.led_num) {
+                LED_service_set_led_state(led_id, state);
+                debug_serial_printf("[%u] LED CHANGE\n", g_SysTick_cnt);
+            }
+            else {
+                debug_serial_puts("Error: invalid LED id\r\n");
+            }
+            break;
+        }
+        case EVENT_LED_SERVICE_UPDATE: {
+            LED_service_update();
+            break;
+        }
+        case EVENT_MOTOR_ROTATION_COMPLETE: {
+            LED_service_execute(BUZZER_CONTROL, &LED_pattern_heartbeat, false);
+            break;
+        }
+        default: { return; }
     }
 }
