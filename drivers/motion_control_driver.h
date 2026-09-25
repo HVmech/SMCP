@@ -5,8 +5,8 @@
 #include <common/board.h>
 #include <common/types.h>
 
-#define CONST_ENA_DELAY_TIME_MS 10
-#define CONST_DIR_DELAY_TIME_MS 1
+#define CONST_ENA_DELAY_TIME_MS 20
+#define CONST_DIR_DELAY_TIME_MS 5
 
 bool motion_control_init(board_pin_e dir_pin, board_pin_e ena_pin);
 void set_motion_control_enable(bool state);

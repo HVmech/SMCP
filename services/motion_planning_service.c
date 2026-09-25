@@ -6,21 +6,28 @@
 
 #include <common/debug_assert.h>
 
+#define PWM_PRESCALER_UPLIM 65535
+#define PWM_PRESCALER_BTMLIM 36
+
 const uint32_t f_update = 10000;
 const uint32_t f_clk = 72000000;
+
 const uint32_t pwm_prescaler = 36;
 
-const uint32_t v_min = 500;
+const uint32_t v_min = 100;
 const uint32_t v_max = 25000;
 const uint32_t a_max = 300;
 const uint32_t j_max = 1;
 
-const uint32_t f_tim = f_clk / pwm_prescaler; // Частота обновления таймера
+const uint32_t f_update_calc = f_update > STEPPER_ISR_HZ ? STEPPER_ISR_HZ : f_update;
+const uint32_t pwm_prescaler_calc = pwm_prescaler > PWM_PRESCALER_UPLIM ? PWM_PRESCALER_UPLIM : (pwm_prescaler < PWM_PRESCALER_BTMLIM ? PWM_PRESCALER_BTMLIM : pwm_prescaler);
 
-const int32_t f_max = v_max; // Максимальная частота импульсов
-const int32_t f_min = v_min; // Минимальная частота импульсов
-const int32_t df_max = a_max; // Максимальное изменение скорости
-const int32_t ddf_max = j_max; // Максимальное изменение ускорения
+const uint32_t f_tim = f_clk / pwm_prescaler_calc; // Частота обновления таймера
+
+const int32_t f_max = v_max > SYSTEM_PUL_MAX_FREQ_HZ ? SYSTEM_PUL_MAX_FREQ_HZ : v_max; // Максимальная частота импульсов
+const int32_t f_min = v_min > START_FREQ_HZ ? START_FREQ_HZ : v_min;; // Минимальная частота импульсов
+const int32_t df_max = a_max > MAX_ACCEL_HZ_S ? MAX_ACCEL_HZ_S : a_max; // Максимальное изменение скорости
+const int32_t ddf_max = j_max > MAX_JERK_HZ_S_2 ? MAX_JERK_HZ_S_2 : j_max; // Максимальное изменение ускорения
 
 const uint32_t repetitions_calc = f_tim / f_update; // Количество обновлений для генерации прерывания
 const uint32_t repetitions = repetitions_calc > 255 ? 255 : (repetitions_calc < 10 ? 10 : repetitions_calc);
@@ -83,7 +90,7 @@ motion_block_t plan_motion(uint32_t total_steps, bool reverse) {
 
     result.motion_phases[PHASE_J1].update_steps = Nj;
 
-    const int64_t delta_J2 = Nj * df_max - ddf_max * Nj * (Nj - 1) / 2;
+    const int64_t delta_J2 = Nj * df - ddf_max * Nj * (Nj - 1) / 2;
 
     // 2. Расчет фазы A1: Движение с постоянным ускорением
     // f = f

@@ -62,9 +62,14 @@ void step_timer_init(const step_timer_config_t *cfg) {
 }
 
 void step_timer_start(void) {
-    timer_set_counter(TIM1, 0);
+    timer_set_counter(TIM1, 0); // Сбрасываем счетчик
+
+    // Обновляем теневые регистры, но предотвращаем мгновенный вход в прерывание
     timer_generate_event(TIM1, TIM_EGR_UG);
-    timer_enable_counter(TIM1);
+    timer_clear_flag(TIM1, TIM_SR_UIF);
+    nvic_clear_pending_irq(NVIC_TIM1_UP_IRQ);
+
+    timer_enable_counter(TIM1); // Включаем счетчик
 }
 
 void step_timer_stop(void) {
@@ -125,6 +130,7 @@ void step_timer_reset_breakup_flag(void) {
 void step_timer_update_timer(void) {
     timer_generate_event(TIM1, TIM_EGR_UG);
     timer_clear_flag(TIM1, TIM_SR_UIF);
+    nvic_clear_pending_irq(NVIC_TIM1_UP_IRQ);
 }
 
 void step_timer_recovery(void) {

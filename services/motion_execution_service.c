@@ -114,8 +114,8 @@ void motion_executor_start(motion_block_t* block) { // Запуск выполн
     }
     
     while (phase_handler->update_steps == 0) {
-        if (config.current_phase > PHASE_TAIL) { return; }
         ++config.current_phase;
+        if (config.current_phase > PHASE_TAIL) { return; }
         phase_handler = &config.current_block.motion_phases[config.current_phase]; // Загружаемая фаза
     }
 
@@ -129,18 +129,18 @@ void motion_executor_start(motion_block_t* block) { // Запуск выполн
     config.phase_updates_made = 0; // Сброс счетчика обновлений
 
     step_timer_set_period(get_period(config.f)); // Настройка частоты
-    step_timer_enable_irq(); // Включение прерываний
+    step_timer_set_rcr(repetitions - 1); // Установка RCR по умолчанию
 
     config.is_running = true;
     g_generate_motor_telemetry_updates = true;
 
     set_motion_control_enable(true); // Включение управления
-    delay_ms(CONST_ENA_DELAY_TIME_MS);
 
     set_motion_control_direction(config.current_block.reverse_direction); // Установка направления
-    delay_ms(CONST_DIR_DELAY_TIME_MS);
 
     step_timer_start(); // Запуск таймера
+    step_timer_enable_irq(); // Включение прерываний
+
     service_timer_enable(); // Запуск служебного таймера
 }
 
