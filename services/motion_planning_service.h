@@ -10,7 +10,7 @@
 #define GEARBOX_RATIO  50 // Передаточное число редуктора     
 #define STEP_ANGLE_DEG (360.0 / (MOTOR_FULL_STEPS_PER_REV * DRIVER_MICROSTEP * GEARBOX_RATIO)) // Угол за один импульс
 
-#define START_FREQ_HZ 500 // Стартовая частота импульсов
+#define START_FREQ_HZ 31 // Стартовая частота импульсов
 #define MAX_ACCEL_HZ_S 500 // Максимально допустимое ускорение
 #define MAX_JERK_HZ_S_2 1 // Максимально допустимое ускорение
 

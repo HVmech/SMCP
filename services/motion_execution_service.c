@@ -35,7 +35,7 @@ static inline uint32_t get_period(uint32_t freq_hz) { return f_tim / freq_hz; } 
 
 static inline void stop_motion(bool state) {
     step_timer_stop();
-    set_motion_control_enable(false); // Отключение двигателя
+    //set_motion_control_enable(false); // Отключение двигателя
     config.is_running = false;
     g_generate_motor_telemetry_updates = false;
 
@@ -125,13 +125,21 @@ void motion_executor_start(motion_block_t* block) { // Запуск выполн
     config.f = phase_handler->f0;
     config.df = phase_handler->df0;
     config.ddf = phase_handler->ddf0;
-    config.phase_updates_left = phase_handler->update_steps;
     config.phase_updates_made = 0; // Сброс счетчика обновлений
 
     step_timer_set_period(get_period(config.f)); // Настройка частоты
-    step_timer_set_rcr(repetitions - 1); // Установка RCR по умолчанию
+    
+    if (config.current_phase == PHASE_TAIL) {
+        step_timer_set_rcr(phase_handler->update_steps - 1);
+        config.phase_updates_left = 1;
+    }
+    else {
+        step_timer_set_rcr(repetitions - 1);
+        config.phase_updates_left = phase_handler->update_steps;
+    }
 
     config.is_running = true;
+    g_motor_telemetry_started = false;
     g_generate_motor_telemetry_updates = true;
 
     set_motion_control_enable(true); // Включение управления
@@ -186,10 +194,9 @@ void motion_executor_telemetry_update(void) {
 
     g_motor_telemetry.active_phase = config.current_phase;
 
-    if (config.current_phase == PHASE_TAIL) {
-        g_motor_telemetry.progress_percentage = 100;
-    }
-    else {
+    if (config.current_phase == PHASE_TAIL || config.current_block.total_updates == 0) {
+        g_motor_telemetry.progress_percentage = 1000;
+    } else {
         //uint32_t percentage = ((phase_updates_milestone - config.phase_steps_left) * 1000) / config.current_block.total_updates;
         //g_motor_telemetry.progress_percentage = (percentage + 5) / 10;
         uint32_t div = config.current_block.total_updates;
@@ -209,6 +216,7 @@ void motion_executor_telemetry_update(void) {
         //debug_serial_printf("div = %u\r\n", div);
 
         DEBUG_ASSERT((uint64_t)mul1 * (uint64_t)mul2 < UINT32_MAX);
+        DEBUG_ASSERT(div != 0);
 
         g_motor_telemetry.progress_percentage = mul1 * mul2 / div;
     }

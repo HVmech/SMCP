@@ -124,21 +124,19 @@ void motion_controller_init(board_pin_e dir_pin, board_pin_e ena_pin) {
 
     controller.bus = event_dispatcher_get_bus();
 
-    event_bus_subscribe(controller.bus, EVENT_MOTOR_ROTATION_REQUEST, motion_controller_service_event_handler);
+    event_bus_subscribe(controller.bus, EVENT_MOTOR_ROTATION_REQUEST_ANGLE, motion_controller_service_event_handler);
+    event_bus_subscribe(controller.bus, EVENT_MOTOR_ROTATION_REQUEST_STEPS, motion_controller_service_event_handler);
     event_bus_subscribe(controller.bus, EVENT_MOTOR_PREPARATION_COMPLETE, motion_controller_service_event_handler);
     event_bus_subscribe(controller.bus, EVENT_MOTOR_ROTATION_COMPLETE, motion_controller_service_event_handler);
     event_bus_subscribe(controller.bus, EVENT_MOTOR_EMERGENCY_STOP, motion_controller_service_event_handler);
     event_bus_subscribe(controller.bus, EVENT_MOTOR_RECOVERY_REQUEST, motion_controller_service_event_handler);
     
-    event_bus_subscribe(controller.bus, EVENT_MOTOR_ROTATION_TEST_REQUEST, motion_controller_service_event_handler);
+    //event_bus_subscribe(controller.bus, EVENT_MOTOR_ROTATION_TEST_REQUEST, motion_controller_service_event_handler);
 }
 
-void motion_controller_prepare(int32_t angle) {
+static void motion_controller_prepare_steps(uint32_t steps, bool reversed_direction) {
     DEBUG_ASSERT(controller.bus);
     motion_controller_reset();
-
-    bool reverse = (angle < 0);
-    uint32_t steps = angle_to_steps(angle);
 
     if (steps == 0) { 
         controller.prepared = false;
@@ -154,7 +152,7 @@ void motion_controller_prepare(int32_t angle) {
         //debug_serial_printf("r = %u\r\n", repetitions);
         //debug_serial_printf("steps = %u\r\n", steps);
 
-        controller.block = plan_motion(steps, reverse);
+        controller.block = plan_motion(steps, reversed_direction);
         controller.prepared = true;
 
         event_t evt = {0};
@@ -167,6 +165,13 @@ void motion_controller_prepare(int32_t angle) {
     }
 }
 
+static void motion_controller_prepare_angle(int32_t angle) {
+    const bool reverse = (angle < 0);
+    const uint32_t steps = angle_to_steps(angle);
+
+    motion_controller_prepare_steps(steps, reverse);
+}
+/*
 void motion_controller_prepare_test(bool reverse, int32_t f) {
     DEBUG_ASSERT(controller.bus);
 
@@ -195,7 +200,7 @@ void motion_controller_prepare_test(bool reverse, int32_t f) {
 
     event_bus_post(controller.bus, &evt);
 }
-
+*/
 void motion_controller_start(void) {
     DEBUG_ASSERT(controller.bus);
 
@@ -232,7 +237,7 @@ void motion_controller_service_event_handler(const event_t *evt) {
     DEBUG_ASSERT(evt);
 
     switch (evt->id) {
-        case EVENT_MOTOR_ROTATION_REQUEST: {
+        case EVENT_MOTOR_ROTATION_REQUEST_ANGLE: {
             if (controller.busy) { return; }
             if (evt->payload.type != EVENT_DATA_SIGNED) { return; }
 
@@ -241,7 +246,21 @@ void motion_controller_service_event_handler(const event_t *evt) {
             //debug_serial_printf("delay = %u\r\n", 10000);
             //delay_ms(10000);
 
-            motion_controller_prepare(evt->payload.data.signed_value);
+            motion_controller_prepare_angle(evt->payload.data.signed_value);
+            break;
+        }
+        case EVENT_MOTOR_ROTATION_REQUEST_STEPS: {
+            if (controller.busy) { return; }
+            if (evt->payload.type != EVENT_DATA_SIGNED) { return; }
+
+            const int32_t steps_input = evt->payload.data.signed_value;
+
+            debug_serial_printf("steps = %d\r\n", steps_input);
+
+            const bool reverse = (steps_input < 0);
+            const uint32_t steps_abs = steps_input > 0 ? (steps_input) : (-1 * steps_input);
+
+            motion_controller_prepare_steps(steps_abs, reverse);
             break;
         }
         case EVENT_MOTOR_PREPARATION_COMPLETE: {
@@ -286,6 +305,7 @@ void motion_controller_service_event_handler(const event_t *evt) {
             event_bus_post(controller.bus, &evt);
             break;
         }
+        /*
         case EVENT_MOTOR_ROTATION_TEST_REQUEST: {
             if (controller.busy) { return; }
             if (evt->payload.type != EVENT_DATA_SIGNED) { return; }
@@ -295,6 +315,7 @@ void motion_controller_service_event_handler(const event_t *evt) {
             motion_controller_prepare_test(direction, f);
             break;
         }
+        */
         default: { return; }
     }
 }

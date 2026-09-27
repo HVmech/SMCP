@@ -23,7 +23,7 @@ static inline void active_state_display_motor_telemetry(uint8_t current_phase, u
     LCD_clear_display();
     LCD_set_string(0, 0, "ROTATING:", false);
     LCD_set_string(1, 0, "Ph: ", false);
-    LCD_set_integer(1, 4, current_phase, false);
+    LCD_set_integer(1, 4, current_phase + 1, false);
     LCD_set_string(1, 5, " Pr: ", false);
 
     const uint8_t integer_digits = digcnt(phase_progress_percentage / 10);
@@ -37,7 +37,7 @@ static inline void active_state_display_motor_telemetry(uint8_t current_phase, u
 
 static inline void active_state_display(void) {
     LCD_set_string(0, 0, "ROTATING:", false);
-    active_state_display_motor_telemetry(g_motor_telemetry.active_phase, g_motor_telemetry.progress_percentage);
+    active_state_display_motor_telemetry(g_motor_telemetry.active_phase, 0);
     LCD_update_request(false);
 }
 
@@ -97,14 +97,24 @@ void active_state_enter(void) {
     event_bus_t *bus = event_dispatcher_get_bus();
     const uint32_t evt_time = get_current_time_ms();
 
+    bool converted_to_steps = app_context.input_context.converted_to_steps;
+
     event_t evt = {0};
-    evt.id = EVENT_MOTOR_ROTATION_REQUEST;
+
     evt.priority = EVENT_PRIORITY_NORMAL;
     evt.flags = EVENT_FLAG_NONE;
     evt.timestamp = evt_time;
 
     evt.payload.type = EVENT_DATA_SIGNED;
-    evt.payload.data.signed_value = app_context.input_context.value;
+    evt.payload.data.signed_value = app_context.input_context.angle_value;
+
+    if (converted_to_steps) {
+        evt.id = EVENT_MOTOR_ROTATION_REQUEST_STEPS;
+    }
+    else {
+        evt.id = EVENT_MOTOR_ROTATION_REQUEST_ANGLE;
+    }
+    
     event_bus_post(bus, &evt);
 
     debug_serial_printf("ACTIVE\n");

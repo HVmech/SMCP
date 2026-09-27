@@ -104,12 +104,12 @@ static inline void input_state_reset_all_digits(void) {
 
 // Сброс значения
 static inline void input_state_reset_value(void) {
-    app_context.input_context.value = 0;
+    app_context.input_context.angle_value = 0;
 }
 
 // Проверка ввода
 static inline bool input_state_validate_input(void) {
-    return app_context.input_context.value > -3600000 && app_context.input_context.value < 3600000;
+    return app_context.input_context.angle_value > -3600000 && app_context.input_context.angle_value < 3600000;
 }
 
 // Обработка точки
@@ -250,24 +250,24 @@ static inline void input_state_update_value(void) {
     input_state_reset_value();
 
     for (uint8_t i = 0; i < INPUT_INTEGER_DIGITS; ++i) {
-        app_context.input_context.value *= 10;
-        app_context.input_context.value += app_context.input_context.data.integer_digits[i];
+        app_context.input_context.angle_value *= 10;
+        app_context.input_context.angle_value += app_context.input_context.data.integer_digits[i];
     }
 
     for (uint8_t i = 0; i < INPUT_FRACTIONAL_DIGITS; ++i) {
-        app_context.input_context.value *= 10;
-        app_context.input_context.value += app_context.input_context.data.fractional_digits[i];
+        app_context.input_context.angle_value *= 10;
+        app_context.input_context.angle_value += app_context.input_context.data.fractional_digits[i];
     }
 
     for (uint8_t i = INPUT_FRACTIONAL_DIGITS; i < ANGLE_PRECISION; ++i) {
-        app_context.input_context.value *= 10;
+        app_context.input_context.angle_value *= 10;
     }
 
     if (app_context.input_context.mode) {
-        app_context.input_context.value = app_context.input_context.data.sign ? -app_context.input_context.value : app_context.input_context.value;
+        app_context.input_context.angle_value = app_context.input_context.data.sign ? -app_context.input_context.angle_value : app_context.input_context.angle_value;
     }
     else {
-        app_context.input_context.value = app_context.input_context.value - app_context.current_angle;
+        app_context.input_context.angle_value = app_context.input_context.angle_value - app_context.current_angle;
     }
 }
 
@@ -432,7 +432,9 @@ static inline void input_state_process_apply() {
     const bool validation = input_state_validate_input();
 
     if (validation) {
-        if (app_context.input_context.value) {
+        app_context.input_context.converted_to_steps = false;
+
+        if (app_context.input_context.angle_value) {
             app_state_transition_request(APP_STATE_ACTIVE);
         }
         else {

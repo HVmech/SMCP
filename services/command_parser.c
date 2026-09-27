@@ -1,7 +1,12 @@
-#include <drivers/SysTick_driver.h>
-#include <services/command_parser.h>
+#include <core/app_context.h>
+#include <core/app_state.h>
 #include <core/event.h>
+
 #include <services/LED_service.h>
+#include <services/command_parser.h>
+
+#include <drivers/SysTick_driver.h>
+
 #include <common/debug_assert.h>
 
 static inline bool is_digit(char c) { return (c >= '0' && c <= '9'); }
@@ -65,6 +70,7 @@ bool command_parser_parse_and_post(event_bus_t *bus, const char *cmd) {
         evt.payload.type = EVENT_DATA_UNSIGNED;
         evt.payload.data.unsigned_value = ((uint32_t)led_id << 1) | (state ? 1U : 0U);
     }
+    /*
     else if (cmd_len > 5 && cmd[0] == 't' && cmd[1] == 'e' && cmd[2] == 's' && cmd[3] == 't' && cmd[4] == ' ') {
         const char *p = cmd + 5;
 
@@ -89,34 +95,79 @@ bool command_parser_parse_and_post(event_bus_t *bus, const char *cmd) {
         evt.payload.type = EVENT_DATA_SIGNED;
         evt.payload.data.signed_value = f;
     }
-    else if (cmd_len > 7 && cmd[0] == 'r' && cmd[1] == 'o' && cmd[2] == 't' && cmd[3] == 'a' && cmd[4] == 't' && cmd[5] == 'e' && cmd[6] == ' ') {
-        const char *p = cmd + 7;
+    */
+    else if (cmd_len > 10 && cmd[0] == 'r' && cmd[1] == 'o' && cmd[2] == 't' && cmd[3] == 'a' && cmd[4] == 't' && cmd[5] == 'e' && cmd[6] == ' ') {
+        if (cmd[7] == '-' && cmd[8] == 'a' && cmd[9] == ' ') {
+            const char *p = cmd + 10;
 
-        int32_t angle = 0;
-        uint8_t i = 0;
-        bool direction = true;
+            int32_t angle = 0;
+            uint8_t i = 0;
+            bool direction = true;
 
-        if (*p == '-') { direction = false; ++p; }
+            if (*p == '-') { direction = false; ++p; }
 
-        do {
-            if (!is_digit(*p)) { break; }
-            angle = angle * 10 + (uint32_t)(*p - '0');
-            ++p;
-            ++i;
-        } while(i < 10);
+            do {
+                if (!is_digit(*p)) { break; }
+                angle = angle * 10 + (uint32_t)(*p - '0');
+                ++p;
+                ++i;
+            } while(i < 3);
 
-        if (angle == 0) { return false; }
+            i = 0;
 
-        angle = direction ? angle : (-1 * angle);
+            if (*p == '.') {
+                ++p;
 
-        // Формируем событие
-        evt.id = EVENT_MOTOR_ROTATION_REQUEST;
-        evt.priority = EVENT_PRIORITY_NORMAL;
-        evt.flags = EVENT_FLAG_NONE;
-        evt.timestamp = g_SysTick_cnt;
+                do {
+                    if (!is_digit(*p)) { break; }
+                    angle = angle * 10 + (uint32_t)(*p - '0');
+                    ++p;
+                    ++i;
+                } while(i < 3);
+            }
 
-        evt.payload.type = EVENT_DATA_SIGNED;
-        evt.payload.data.signed_value = angle;
+            if (angle == 0) { return false; }
+
+            int32_t mul = 1;
+            for (uint8_t j = 0; j < 3 - i; ++j) {
+                mul = mul * 10;
+            }
+
+            angle = angle * mul;
+
+            angle = direction ? angle : (-1 * angle);
+
+            app_context.input_context.converted_to_steps = false;
+            app_context.input_context.angle_value = angle;
+
+            app_state_transition_request(APP_STATE_ACTIVE);
+            return true;
+        }
+        else if (cmd[7] == '-' && cmd[8] == 's' && cmd[9] == ' ') {
+            const char *p = cmd + 10;
+
+            int32_t steps = 0;
+            uint8_t i = 0;
+            bool direction = true;
+
+            if (*p == '-') { direction = false; ++p; }
+
+            do {
+                if (!is_digit(*p)) { break; }
+                steps = steps * 10 + (uint32_t)(*p - '0');
+                ++p;
+                ++i;
+            } while(i < 7);
+
+            if (steps == 0) { return false; }
+            steps = direction ? steps : (-1 * steps);
+
+            app_context.input_context.converted_to_steps = true;
+            app_context.input_context.angle_value = steps;
+
+            app_state_transition_request(APP_STATE_ACTIVE);
+            return true;
+        }
     }
     /*else if (cmd[0] == 'p' && cmd[1] == 'r' && cmd[2] == 's' && cmd[3] == 'c' && cmd[4] == ' ') {
         const char *p = cmd + 5;

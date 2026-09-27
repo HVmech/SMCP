@@ -25,9 +25,10 @@ typedef struct {
 
 typedef struct {
     bool mode;
-    int32_t value;
-    volatile bool error; // Флаг ошибки
+    bool converted_to_steps;
+    int32_t angle_value;
     input_data_t data;
+    volatile bool error; // Флаг ошибки
 } input_context_t;
 
 #endif // SMCP_INPUT_DATA_H

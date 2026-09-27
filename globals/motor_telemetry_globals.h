@@ -10,7 +10,7 @@ typedef struct {
 } motor_telemetry_t;
 
 extern volatile bool g_generate_motor_telemetry_updates;
+extern volatile bool g_motor_telemetry_started;
 extern volatile motor_telemetry_t g_motor_telemetry;
-
 
 #endif // SMCP_MOTOR_TELEMETRY_GLOBALS_H
