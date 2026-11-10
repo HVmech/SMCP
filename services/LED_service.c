@@ -1,14 +1,9 @@
 #include <services/LED_patterns.h>
 #include <services/LED_service.h>
-
 #include <globals/LED_globals.h>
-
 #include <core/service_timer.h>
-
 #include <drivers/time_driver.h>
-
 #include <common/debug_assert.h>
-
 #include <services/debug_serial_service.h>
 
 static LED_service_t svc = {0};
@@ -113,6 +108,7 @@ void LED_service_handle_event(const event_t *evt) {
             LED_service_update();
             break;
         }
+        // TODO: Split logic?
         case EVENT_MOTOR_ROTATION_COMPLETE: {
             LED_service_execute(BUZZER_CONTROL, &LED_pattern_heartbeat, false);
             break;

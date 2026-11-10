@@ -1,5 +1,4 @@
 #pragma once
-
 #ifndef SMCP_UTILS_H
 #define SMCP_UTILS_H
 

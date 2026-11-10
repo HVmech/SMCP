@@ -1,24 +1,21 @@
 #include <services/motion_planning_service.h>
 #include <services/debug_serial_service.h>
-
 #include <core/app_context.h>
 #include <core/event_dispatcher.h>
 #include <core/event_bus.h>
 #include <core/event.h>
-
 #include <services/motion_controller_service.h>
 #include <services/motion_execution_service.h>
-
 #include <drivers/time_driver.h>
 #include <drivers/SysTick_driver.h>
-
 #include <common/utils.h>
 #include <common/debug_assert.h>
 #include <stdint.h>
 
 static motion_controller_state_t controller = {0};
 
-static inline uint32_t angle_to_steps(int32_t angle_input) {
+// Вспомогательные функции:
+static inline uint32_t angle_to_steps(int32_t angle_input) { // Перевод угла в шаги
     const uint32_t abs_angle = (angle_input >= 0) ? angle_input : -angle_input;
 
     const uint32_t steps_per_rev = MOTOR_FULL_STEPS_PER_REV * DRIVER_MICROSTEP * GEARBOX_RATIO;
@@ -28,12 +25,6 @@ static inline uint32_t angle_to_steps(int32_t angle_input) {
     for (uint8_t i = 0; i < ANGLE_PRECISION; ++i) {
         div *= 10;
     }
-
-    //debug_serial_printf("Begin:\r\n");
-    //debug_serial_printf("mul1 = %u\r\n", steps_per_rev);
-    //debug_serial_printf("mul2 = %u\r\n", abs_angle);
-    //debug_serial_printf("div = %u\r\n", div);
-    //debug_serial_printf("\r\n");
 
     uint32_t mul1 = steps_per_rev;
     uint32_t temp_gcd = gcd(mul1, div);
@@ -45,12 +36,6 @@ static inline uint32_t angle_to_steps(int32_t angle_input) {
     mul2 /= temp_gcd;
     div /= temp_gcd;
 
-    //debug_serial_printf("End:\r\n");
-    //debug_serial_printf("mul1 = %u\r\n", mul1);
-    //debug_serial_printf("mul2 = %u\r\n", mul2);
-    //debug_serial_printf("div = %u\r\n", div);
-    //debug_serial_printf("\r\n");
-
     DEBUG_ASSERT((uint64_t)mul1 * (uint64_t)mul2 < UINT32_MAX);
 
     const uint32_t steps_reminder = (((mul1 * mul2 * 10) / div) % 10 >= 5) ? 1 : 0;
@@ -61,7 +46,7 @@ static inline uint32_t angle_to_steps(int32_t angle_input) {
     return steps;
 }
 
-static inline uint32_t steps_to_angle(uint32_t steps) {
+static inline uint32_t steps_to_angle(uint32_t steps) { // Перевод шагов в угол
     const uint32_t steps_per_rev = MOTOR_FULL_STEPS_PER_REV * DRIVER_MICROSTEP * GEARBOX_RATIO;
 
     uint32_t div = steps_per_rev;
@@ -89,7 +74,7 @@ static inline uint32_t steps_to_angle(uint32_t steps) {
     return angle;
 }
 
-static inline void motion_controller_update_current_angle(uint32_t steps, bool reverse_direction) {
+static inline void motion_controller_update_current_angle(uint32_t steps, bool reverse_direction) { // Обновление текущего угла
     const uint32_t steps_per_rev = MOTOR_FULL_STEPS_PER_REV * DRIVER_MICROSTEP * GEARBOX_RATIO;
 
     DEBUG_ASSERT(steps && steps <= steps_per_rev);
@@ -114,27 +99,7 @@ static inline void motion_controller_update_current_angle(uint32_t steps, bool r
     app_context.current_angle = steps_to_angle(controller.position_in_steps);
 }
 
-void motion_controller_init(board_pin_e dir_pin, board_pin_e ena_pin) {
-    DEBUG_ASSERT(!controller.busy && !controller.prepared);
-
-    motion_controller_reset();
-    controller.position_in_steps = 0; // TODO: load from eeprom?
-
-    motion_executor_init(dir_pin, ena_pin);
-
-    controller.bus = event_dispatcher_get_bus();
-
-    event_bus_subscribe(controller.bus, EVENT_MOTOR_ROTATION_REQUEST_ANGLE, motion_controller_service_event_handler);
-    event_bus_subscribe(controller.bus, EVENT_MOTOR_ROTATION_REQUEST_STEPS, motion_controller_service_event_handler);
-    event_bus_subscribe(controller.bus, EVENT_MOTOR_PREPARATION_COMPLETE, motion_controller_service_event_handler);
-    event_bus_subscribe(controller.bus, EVENT_MOTOR_ROTATION_COMPLETE, motion_controller_service_event_handler);
-    event_bus_subscribe(controller.bus, EVENT_MOTOR_EMERGENCY_STOP, motion_controller_service_event_handler);
-    event_bus_subscribe(controller.bus, EVENT_MOTOR_RECOVERY_REQUEST, motion_controller_service_event_handler);
-    
-    //event_bus_subscribe(controller.bus, EVENT_MOTOR_ROTATION_TEST_REQUEST, motion_controller_service_event_handler);
-}
-
-static void motion_controller_prepare_steps(uint32_t steps, bool reversed_direction) {
+static void motion_controller_prepare_steps(uint32_t steps, bool reversed_direction) { // Подготовка перемещения, заданного в шагах
     DEBUG_ASSERT(controller.bus);
     motion_controller_reset();
 
@@ -149,9 +114,6 @@ static void motion_controller_prepare_steps(uint32_t steps, bool reversed_direct
         event_bus_post(controller.bus, &evt);
     }
     else {
-        //debug_serial_printf("r = %u\r\n", repetitions);
-        //debug_serial_printf("steps = %u\r\n", steps);
-
         controller.block = plan_motion(steps, reversed_direction);
         controller.prepared = true;
 
@@ -165,42 +127,34 @@ static void motion_controller_prepare_steps(uint32_t steps, bool reversed_direct
     }
 }
 
-static void motion_controller_prepare_angle(int32_t angle) {
+static void motion_controller_prepare_angle(int32_t angle) { // Подготовка перемещения, заданного углом
     const bool reverse = (angle < 0);
     const uint32_t steps = angle_to_steps(angle);
 
     motion_controller_prepare_steps(steps, reverse);
 }
-/*
-void motion_controller_prepare_test(bool reverse, int32_t f) {
-    DEBUG_ASSERT(controller.bus);
+
+// Основные функции:
+void motion_controller_init(board_pin_e dir_pin, board_pin_e ena_pin) {
+    DEBUG_ASSERT(!controller.busy && !controller.prepared);
 
     motion_controller_reset();
+    controller.position_in_steps = 0; // TODO: load from eeprom?
 
-    //if (f < f_min) { return; }
+    motion_executor_init(dir_pin, ena_pin);
 
-    controller.block.reverse_direction = reverse;
-    controller.block.motion_phases[PHASE_C].ddf0 = 0;
-    controller.block.motion_phases[PHASE_C].df0 = 0;
-    controller.block.motion_phases[PHASE_C].f0 = f;
-    controller.block.motion_phases[PHASE_C].update_steps = (MOTOR_FULL_STEPS_PER_REV * DRIVER_MICROSTEP) / repetitions;
+    controller.bus = event_dispatcher_get_bus();
 
-    debug_serial_printf("f_tim = %u\r\n", f_tim);
-    debug_serial_printf("f_max = %d, f_min = %d\r\n", f_max, f_min);
-    debug_serial_printf("df_max = %d, ddf_max = %d\r\n", df_max, ddf_max);
-
-    debug_serial_printf("s = %u, f = %d, r = %u\r\n", controller.block.motion_phases[PHASE_C].update_steps, f, repetitions);
-    controller.prepared = true;
-
-    event_t evt = {0};
-    evt.id = EVENT_MOTOR_ROTATION_PREPARE;
-    evt.priority = EVENT_PRIORITY_HIGH;
-    evt.flags = EVENT_FLAG_NONE;
-    evt.timestamp = g_SysTick_cnt;
-
-    event_bus_post(controller.bus, &evt);
+    // TODO: make manage subscriptions func?
+    event_bus_subscribe(controller.bus, EVENT_MOTOR_ROTATION_REQUEST_ANGLE, motion_controller_service_event_handler);
+    event_bus_subscribe(controller.bus, EVENT_MOTOR_ROTATION_REQUEST_STEPS, motion_controller_service_event_handler);
+    event_bus_subscribe(controller.bus, EVENT_MOTOR_POSITION_CORRECTION_REQUEST, motion_controller_service_event_handler);
+    event_bus_subscribe(controller.bus, EVENT_MOTOR_PREPARATION_COMPLETE, motion_controller_service_event_handler);
+    event_bus_subscribe(controller.bus, EVENT_MOTOR_ROTATION_COMPLETE, motion_controller_service_event_handler);
+    event_bus_subscribe(controller.bus, EVENT_MOTOR_EMERGENCY_STOP, motion_controller_service_event_handler);
+    event_bus_subscribe(controller.bus, EVENT_MOTOR_RECOVERY_REQUEST, motion_controller_service_event_handler);
 }
-*/
+
 void motion_controller_start(void) {
     DEBUG_ASSERT(controller.bus);
 
@@ -242,9 +196,6 @@ void motion_controller_service_event_handler(const event_t *evt) {
             if (evt->payload.type != EVENT_DATA_SIGNED) { return; }
 
             debug_serial_printf("angle = %d\r\n", evt->payload.data.signed_value);
-
-            //debug_serial_printf("delay = %u\r\n", 10000);
-            //delay_ms(10000);
 
             motion_controller_prepare_angle(evt->payload.data.signed_value);
             break;
@@ -305,17 +256,13 @@ void motion_controller_service_event_handler(const event_t *evt) {
             event_bus_post(controller.bus, &evt);
             break;
         }
-        /*
-        case EVENT_MOTOR_ROTATION_TEST_REQUEST: {
-            if (controller.busy) { return; }
-            if (evt->payload.type != EVENT_DATA_SIGNED) { return; }
+        case EVENT_MOTOR_POSITION_CORRECTION_REQUEST: {
+            DEBUG_ASSERT(app_context.current_angle >= 0 && app_context.current_angle < 3600000);
 
-            bool direction = evt->payload.data.signed_value > 0;
-            int32_t f = direction ? evt->payload.data.signed_value : (-1 * evt->payload.data.signed_value);
-            motion_controller_prepare_test(direction, f);
+            controller.position_in_steps = angle_to_steps(app_context.current_angle);
+            app_context.current_angle = steps_to_angle(controller.position_in_steps);
             break;
         }
-        */
         default: { return; }
     }
 }

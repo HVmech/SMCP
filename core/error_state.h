@@ -6,6 +6,6 @@
 
 #define CONST_ERROR_STATE_INFO_ROW 0
 
-extern const app_state_t error_state;
+extern const app_state_t error_state; // Переменная состояния ошибки для хранения указателей вызова функций
 
 #endif // SMCP_ERROR_STATE_H

@@ -4,7 +4,7 @@
 
 #include <common/types.h>
 
-extern volatile bool g_keyboard_block;
-extern volatile uint32_t g_keyboard_block_time;
+extern volatile bool g_keyboard_block; // Признак блокировки клавиатуры
+extern volatile uint32_t g_keyboard_block_time; // Временная метка блокировки
 
 #endif // SMCP_KEYBOARD_GLOBALS_H

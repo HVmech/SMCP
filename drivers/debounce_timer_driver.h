@@ -1,5 +1,4 @@
 #pragma once
-
 #ifndef SMCP_DEBOUNCE_TIMER_DRIVER_H
 #define SMCP_DEBOUNCE_TIMER_DRIVER_H
 

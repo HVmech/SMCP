@@ -8,6 +8,12 @@
 #define INPUT_FRACTIONAL_DIGITS (ANGLE_PRECISION - 1)
 #define INPUT_DIGITS_COUNT (INPUT_INTEGER_DIGITS + INPUT_FRACTIONAL_DIGITS)
 
+typedef enum {
+    INPUT_CURRENT_ANGLE = 0,
+    INPUT_RELATIVE_ANGLE,
+    INPUT_CORRECTION_ANGLE
+} input_mode_e;
+
 typedef struct {
     // Целая часть
     uint8_t integer_digits[INPUT_INTEGER_DIGITS];
@@ -24,7 +30,7 @@ typedef struct {
 } input_data_t;
 
 typedef struct {
-    bool mode;
+    input_mode_e mode;
     bool converted_to_steps;
     int32_t angle_value;
     input_data_t data;

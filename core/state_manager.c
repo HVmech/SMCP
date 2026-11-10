@@ -1,16 +1,13 @@
 #include <core/state_manager.h>
-
 #include <core/event_dispatcher.h>
 #include <core/event_bus.h>
 #include <core/event.h>
-
 #include <services/debug_serial_service.h>
-
 #include <common/debug_assert.h>
 
 app_state_code_t current_state = 0;
 
-void state_manager_init(void) {
+void state_manager_init(void) { // Инициализация
     current_state = APP_STATE_IDLE;
     idle_state.enter();
 
@@ -18,7 +15,7 @@ void state_manager_init(void) {
     event_bus_subscribe(bus, EVENT_STATE_TRANSITION_REQUEST, state_manager_event_handler);
 }
 
-void state_manager_event_handler(const event_t *evt) {
+void state_manager_event_handler(const event_t *evt) { // Обработчик событий
     DEBUG_ASSERT(evt);
 
     if (evt->id == EVENT_STATE_TRANSITION_REQUEST) {

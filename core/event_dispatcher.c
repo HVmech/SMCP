@@ -1,5 +1,4 @@
 #include <core/event_dispatcher.h>
-
 #include <services/debug_serial_service.h>
 #include <services/LED_service.h>
 #include <drivers/time_driver.h>
@@ -18,7 +17,7 @@ event_bus_t* event_dispatcher_get_bus() {
     return dispatcher.bus;
 }
 
-bool event_dispatcher_process() {
+bool event_dispatcher_process() { // Функция с процессом обработки событий
     DEBUG_ASSERT(dispatcher.bus);
 
     event_bus_t *bus = dispatcher.bus;
@@ -41,5 +40,5 @@ bool event_dispatcher_process() {
 
     if (result) { debug_serial_printf("[%u] EVENT PROCESSED: %d\n", g_SysTick_cnt, evt.id); }
 
-    return result; // Все очереди пусты
+    return result; // Все очереди пусты - 0, было обработано событие - 1
 }

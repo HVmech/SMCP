@@ -2,13 +2,12 @@
 #include <globals/USART_globals.h>
 #include <core/event_dispatcher.h>
 #include <services/command_parser.h>
-//#include <drivers/time_driver.h>
 #include <common/debug_assert.h>
 
 // Статические буферы
 #define DEBUG_TX_BUFFER_SIZE 128
 #define DEBUG_RX_BUFFER_SIZE 64
-#define SERIAL_CMD_BUFFER_SIZE 64   // можно потом вынести в конфиг
+#define SERIAL_CMD_BUFFER_SIZE 64
 
 static char serial_cmd_buffer[SERIAL_CMD_BUFFER_SIZE];
 static uint16_t serial_cmd_len = 0;
@@ -45,7 +44,6 @@ bool debug_serial_init(USART_port_e port, uint32_t baudrate, bool remap, bool en
 void debug_serial_putchar(uint8_t ch) {
     DEBUG_ASSERT(initialized);
     USART_try_send(&serial_USART_driver, ch, 10);
-    //USART_send(&serial_USART_driver, (uint8_t)ch);
 }
 
 void debug_serial_puts(const char *str) {
@@ -202,25 +200,15 @@ void debug_serial_handle_event(const event_t *evt) {
 
         // Если конец строки
         if (byte == '\n') {
+            if (serial_cmd_len < SERIAL_CMD_BUFFER_SIZE) { serial_cmd_buffer[serial_cmd_len] = '\0'; } // Завершаем строку
 
-            // Завершаем строку
-            if (serial_cmd_len < SERIAL_CMD_BUFFER_SIZE) {
-                serial_cmd_buffer[serial_cmd_len] = '\0';
-            }
-
-            // Вызываем парсер
-            bool ok = command_parser_parse_and_post(
-                event_dispatcher_get_bus(),
-                serial_cmd_buffer
-            );
-
-            if (!ok) {
-                debug_serial_puts("Error: invalid command\r\n");
-            }
+            bool ok = command_parser_parse_and_post(event_dispatcher_get_bus(), serial_cmd_buffer); // Вызываем парсер
+            if (!ok) { debug_serial_puts("Error: invalid command\r\n"); }
 
             // Сбрасываем буфер для следующей команды
             serial_cmd_len = 0;
 
+            // TODO: critical section?
             // Сбрасываем флаг ожидания для этого USART
             g_usart_rx_pending[port] = false;
             return;
@@ -230,18 +218,16 @@ void debug_serial_handle_event(const event_t *evt) {
         if (serial_cmd_len < SERIAL_CMD_BUFFER_SIZE - 1) {
             serial_cmd_buffer[serial_cmd_len++] = (char)byte;
         }
-        else {
-            // ПЕРЕПОЛНЕНИЕ БУФЕРА КОМАНДЫ
-            serial_cmd_len = 0;
+        else { // Переполнение буфера
+            serial_cmd_len = 0; // Обнуляем длину команды
 
-            // Очищаем RX буфер полностью
             uint8_t tmp;
-            while (USART_receive(&serial_USART_driver, &tmp)) {}
+            while (USART_receive(&serial_USART_driver, &tmp)) {} // Опустошаем RX буфер до конца
 
-            debug_serial_puts("Error: command too long\r\n");
+            debug_serial_puts("Error: command too long\r\n"); // Сообщаем о переполнении
 
-            // Сбрасываем флаг и выходим
-            g_usart_rx_pending[port] = false;
+            // TODO: critical section?
+            g_usart_rx_pending[port] = false; // Сбрасываем флаг и выходим
             return;
         }
     }

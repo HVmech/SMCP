@@ -5,7 +5,7 @@
 #include <globals/keyboard_globals.h>
 #include <drivers/time_driver.h>
 
-static inline bool generate_keyboard_block_event(void) {
+static inline bool generate_keyboard_block_event(void) { // Генерация блокировки клавиатуры
     static uint32_t last_update = 0;
     static bool prev_keyboard_block = false;
     bool result = false;

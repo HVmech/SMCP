@@ -1,10 +1,7 @@
-#include <drivers/LCD_control_timer_driver.h>
-
-#include <globals/LCD_globals.h>
-
 #include <common/debug_assert.h>
 #include <common/types.h>
-
+#include <globals/LCD_globals.h>
+#include <drivers/LCD_control_timer_driver.h>
 #include <libopencm3/stm32/timer.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/cm3/nvic.h>

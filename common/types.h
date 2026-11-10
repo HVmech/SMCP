@@ -1,5 +1,4 @@
 #pragma once
-
 #ifndef SMCP_TYPES_H
 #define SMCP_TYPES_H
 

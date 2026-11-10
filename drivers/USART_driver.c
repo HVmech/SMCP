@@ -23,6 +23,7 @@ static const uint8_t USART_IRQ_map[USART_CNT] = {NVIC_USART1_IRQ, NVIC_USART2_IR
 
 static USART_driver_t *USART_driver_list[USART_CNT] = {0};
 
+// Вспомогательные функции:
 static inline uint32_t USART_get_port_address(USART_port_e port) {
     DEBUG_ASSERT(port < USART_CNT);
     return USART_port_map[port];
@@ -128,6 +129,7 @@ static inline bool USART_load_config(const USART_config_t *cfg) {
     return true;
 }
 
+// Основные функции:
 bool USART_init(USART_driver_t *drv, const USART_config_t *cfg, void *TX_buff, uint16_t TX_size, void *RX_buff, uint16_t RX_size)
 {
     DEBUG_ASSERT(drv && cfg);         // Проверка указателей

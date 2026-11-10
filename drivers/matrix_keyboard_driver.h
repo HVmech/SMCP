@@ -5,6 +5,7 @@
 #include <common/board.h>
 #include <common/types.h>
 
+// TODO: config?
 #define KEYBOARD_ROWS 5
 #define KEYBOARD_COLUMNS 4
 
@@ -21,12 +22,12 @@
 #define NORMAL_PRESS_DURATION_MS 500
 #define LONG_PRESS_DURATION_MS 1000
 
-typedef struct {
+typedef struct { // Конфигурация клавиатуры
     board_pin_e column_pins[KEYBOARD_COLUMNS];
     board_pin_e row_pins[KEYBOARD_ROWS];
 } matrix_keyboard_config_t;
 
-typedef enum {
+typedef enum { // Перечислитель кнопок
     KEY_F1    = 0,
     KEY_F2    = 1,
     KEY_SIGN  = 2,
@@ -50,9 +51,9 @@ typedef enum {
     KEY_CNT
 } key_t;
 
-extern const uint8_t key_to_digit[KEY_CNT];
+extern const uint8_t key_to_digit[KEY_CNT]; // look-up таблица перевода кнопок в их числа
 
-void matrix_keyboard_init(const matrix_keyboard_config_t *config);
-uint8_t matrix_keyboard_key_to_digit(key_t key);
+void matrix_keyboard_init(const matrix_keyboard_config_t *config); // Инициализация
+uint8_t matrix_keyboard_key_to_digit(key_t key); // Получение цифры от нажатой кнопки
 
 #endif // SMCP_MATRIX_KEYBOARD_DRIVER_H

@@ -1,16 +1,12 @@
 #include <drivers/matrix_keyboard_driver.h>
-
 #include <core/event_dispatcher.h>
 #include <core/event_bus.h>
 #include <core/event.h>
-
 #include <drivers/debounce_timer_driver.h>
 #include <drivers/time_driver.h>
-
 #include <common/board.h>
 #include <common/debug_assert.h>
 #include <common/asm.h>
-
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/exti.h>
 #include <libopencm3/stm32/timer.h>
@@ -33,7 +29,8 @@ static bool scanning_active = false;
 static uint32_t last_activity_time = 0;
 static uint16_t EXTI_activation_mask = 0;
 
-static inline uint8_t gpio_pin_to_exti_line(uint16_t pin) {
+// Вспомогательные функции:
+static inline uint8_t gpio_pin_to_exti_line(uint16_t pin) { // Определение линии по переданному пину
     DEBUG_ASSERT(pin <= GPIO4);
     switch (pin) {
         case GPIO0: return 0;
@@ -45,7 +42,7 @@ static inline uint8_t gpio_pin_to_exti_line(uint16_t pin) {
     }
 }
 
-static inline void keyboard_connect_EXTI(void) {
+static inline void keyboard_connect_EXTI(void) { // Генерация маски
     DEBUG_ASSERT(kbd_cfg);
     EXTI_activation_mask = 0;
 
@@ -56,21 +53,21 @@ static inline void keyboard_connect_EXTI(void) {
     }
 }
 
-static inline void set_keyboard_EXTI_enable(uint8_t column_index) {
+static inline void set_keyboard_EXTI_enable(uint8_t column_index) { // Включение
     DEBUG_ASSERT(kbd_cfg);
     const MCU_pin_t pin = get_MCU_pin(kbd_cfg->column_pins[column_index]);
     const uint8_t line = gpio_pin_to_exti_line(pin.pin);
     exti_enable_request(1 << line);
 }
 
-static inline void set_keyboard_EXTI_disable(uint8_t column_index) {
+static inline void set_keyboard_EXTI_disable(uint8_t column_index) { // Выключение
     DEBUG_ASSERT(kbd_cfg);
     const MCU_pin_t pin = get_MCU_pin(kbd_cfg->column_pins[column_index]);
     const uint8_t line = gpio_pin_to_exti_line(pin.pin);
     exti_disable_request(1 << line);
 }
 
-static inline void keyboard_scanning_start(void) {
+static inline void keyboard_scanning_start(void) { // Запуск сканирования
     for (uint8_t i = 0; i < KEYBOARD_COLUMNS; ++i) {
         set_keyboard_EXTI_disable(i);
     }
@@ -79,7 +76,7 @@ static inline void keyboard_scanning_start(void) {
     timer_enable_counter(TIM2);
 }
 
-static inline void keyboard_scanning_stop(void) {
+static inline void keyboard_scanning_stop(void) { // Остановка сканирования
     timer_disable_counter(TIM2);
     scanning_active = false;
 
@@ -93,14 +90,14 @@ static inline void keyboard_scanning_stop(void) {
     }
 }
 
-static inline void keyboard_execute_matrix_scan(void) {
+static inline void keyboard_execute_matrix_scan(void) { // Выполнение сканирования матрицы
     DEBUG_ASSERT(kbd_cfg);
     for (uint8_t i = 0; i < KEYBOARD_ROWS; ++i) {
         const MCU_pin_t active_row = get_MCU_pin(kbd_cfg->row_pins[i]);
         gpio_clear(active_row.port, active_row.pin);
 
+        // TODO: need it?
         //for (volatile int delay = 0; delay < RC_STABILITY_DELAY_TICK; ++delay) { MACRO_ASM_DO_NOTHING; }
-        // Для конденсаторов в 100 нФ должно быть значение 2000-3000
 
         for (uint8_t j = 0; j < KEYBOARD_COLUMNS; ++j) {
             MCU_pin_t column = get_MCU_pin(kbd_cfg->column_pins[j]);
@@ -112,7 +109,7 @@ static inline void keyboard_execute_matrix_scan(void) {
     }
 }
 
-static inline bool keyboard_execute_debounce_tick(void) {
+static inline bool keyboard_execute_debounce_tick(void) { // Выполнение инкрементальной фильтрации дребезга
     bool any_pressed = false;
     const uint32_t evt_time = get_current_time_ms();
 
@@ -198,7 +195,7 @@ static inline bool keyboard_execute_debounce_tick(void) {
     return any_pressed;
 }
 
-static inline void keyboard_periodic_task(void) {
+static inline void keyboard_periodic_task(void) { // Процесс активного сканирования клавиатуры
     if (!scanning_active) { return; }
 
     keyboard_execute_matrix_scan();
@@ -215,15 +212,14 @@ static inline void keyboard_periodic_task(void) {
     tick++;
 }
 
-static inline void keyboard_trigger_task(uint8_t line) {
+static inline void keyboard_trigger_task(uint8_t line) { // Триггер включение клавиатуры
     if (!scanning_active) {
         keyboard_scanning_start();
     }
     exti_reset_request(1 << line);
-    //nvic_clear_pending_irq(NVIC_EXTI0_IRQ + line);
-    //exti_disable_request(1 << line);
 }
 
+// Основные функции:
 void matrix_keyboard_init(const matrix_keyboard_config_t *config) {
     DEBUG_ASSERT(config);
 
@@ -271,6 +267,7 @@ uint8_t matrix_keyboard_key_to_digit(key_t key) {
     return key_to_digit[key];
 }
 
+// Обработчики прерываний:
 void EXTI0_Handler(void) { if (EXTI_activation_mask & (1 << 0)) { keyboard_trigger_task(0); } }
 void EXTI1_Handler(void) { if (EXTI_activation_mask & (1 << 1)) { keyboard_trigger_task(1); } }
 void EXTI2_Handler(void) { if (EXTI_activation_mask & (1 << 2)) { keyboard_trigger_task(2); } }

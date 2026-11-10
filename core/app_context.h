@@ -10,6 +10,6 @@ typedef struct {
     input_context_t input_context;
 } app_context_t;
 
-extern app_context_t app_context;
+extern app_context_t app_context; // Глобальная переменная для хранения контекста текущего состояния угла и ввода
 
 #endif // SMCP_APP_CONTEXT_H

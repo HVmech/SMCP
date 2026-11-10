@@ -1,8 +1,6 @@
 #include "libopencm3/stm32/f1/nvic.h"
 #include <drivers/step_timer_driver.h>
-
 #include <common/debug_assert.h>
-
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/timer.h>

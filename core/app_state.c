@@ -1,15 +1,12 @@
 #include <core/app_state.h>
-
 #include <globals/keyboard_globals.h>
-
 #include <core/event_dispatcher.h>
 #include <core/event_bus.h>
 #include <core/event.h>
 #include <core/service_timer.h>
-
 #include <drivers/time_driver.h>
 
-void app_state_transition_request(app_state_code_t state) {
+void app_state_transition_request(app_state_code_t state) { // Функция запроса смены текущего состояния
     event_t evt = {0};
     const uint32_t evt_time = get_current_time_ms();
     event_bus_t *bus = event_dispatcher_get_bus();
@@ -20,9 +17,10 @@ void app_state_transition_request(app_state_code_t state) {
     evt.payload.data.unsigned_value = state;
     evt.timestamp = evt_time;
 
-    event_bus_post(bus, &evt);
+    event_bus_post(bus, &evt); // Публикация запроса на шину событий
 
+    // Блокировка клавиатуры для гарантии отсутствия возникновения повторной команды переключения состояния
     g_keyboard_block = true;
-    g_keyboard_block_time = 100;
+    g_keyboard_block_time = 400;
     service_timer_enable();
 }

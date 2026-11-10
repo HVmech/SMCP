@@ -1,34 +1,29 @@
-
 #include <core/state_manager.h>
-
 #include <core/event_dispatcher.h>
 #include <core/event_bus.h>
 #include <core/event.h>
 #include <core/service_timer.h>
-
 #include <services/debug_serial_service.h>
 #include <services/LED_patterns.h>
 #include <services/LED_service.h>
 #include <services/motion_controller_service.h>
 #include <services/LCD_service.h>
-
 #include <drivers/matrix_keyboard_driver.h>
 #include <drivers/RTC_driver.h>
 #include <drivers/SysTick_driver.h>
 #include <drivers/time_driver.h>
-
 #include <drivers/LCD_driver.h>
-
 #include <common/ring_buffer.h>
 #include <common/asm.h>
 #include <common/board.h>
-
 #include <libopencm3/cm3/nvic.h>
 
+// TODO: config?
 #define EVENT_QUEUE_HIGH_SIZE   8
 #define EVENT_QUEUE_NORMAL_SIZE 8
 #define EVENT_QUEUE_LOW_SIZE    8
 
+// TODO: transfer?
 event_bus_t g_event_bus;
 
 static event_t event_queue_high_storage[EVENT_QUEUE_HIGH_SIZE];
@@ -39,19 +34,7 @@ static ring_buffer_t event_queue_high;
 static ring_buffer_t event_queue_low;
 static ring_buffer_t event_queue_normal;
 
-/* void motor_test_helper_handler(const event_t *evt_inp) {
-    if (evt_inp->id != EVENT_MOTOR_ROTATION_PREPARE) { return; }
-
-    event_t evt = {0};
-    evt.id = EVENT_MOTOR_PREPARATION_COMPLETE;
-    evt.priority = EVENT_PRIORITY_HIGH;
-    evt.flags = EVENT_FLAG_NONE;
-    evt.timestamp = g_SysTick_cnt;
-
-    event_bus_t *bus = event_dispatcher_get_bus();
-    event_bus_post(bus, &evt);
-} */
-
+// TODO: transfer?
 void keyboard_test_helper_handler(const event_t *evt_inp) {
     switch (evt_inp->id) {
         case EVENT_KEY_PRESS: {
@@ -79,6 +62,7 @@ int main(void)
     RTC_init();
     SysTick_init();
 
+    // TODO: Transfer to other module?
     ring_buffer_t *event_queues[EVENT_PRIORITY_NUM] = {
         &event_queue_high,
         &event_queue_normal,
@@ -97,35 +81,44 @@ int main(void)
     event_bus_init(&g_event_bus, event_queues);
     event_dispatcher_init(&g_event_bus);
 
+    // TODO: transfer to other module?
     service_timer_init(20); // базовый период 20 мс
+
+    // TODO: why?
     if (!debug_serial_init(USART_1, 115200, true, true)) { return -1; }
+
+    // TODO: transfer?
     LED_service_init_led(LED_BUILTIN, PC13, true);
     LED_service_init_led(LED_MOTOR_STOP_BUTTON, PB13, true);
     LED_service_init_led(BUZZER_CONTROL, PB14, false);
+
+    // TODO: Transfer pins to board module?
     motion_controller_init(PA9, PA10);
+
+    // TODO: 
     matrix_keyboard_init(&keyboard_config);
 
     LCD_init();
 
+    // TODO: transfer?
     event_bus_subscribe(&g_event_bus, EVENT_LED_SERVICE_UPDATE, LED_service_handle_event);
     event_bus_subscribe(&g_event_bus, EVENT_LED_CONTROL, LED_service_handle_event);
     event_bus_subscribe(&g_event_bus, EVENT_USART1_RX, debug_serial_handle_event);
-    //event_bus_subscribe(&g_event_bus, EVENT_MOTOR_ROTATION_PREPARE, motor_test_helper_handler);
-
     event_bus_subscribe(&g_event_bus, EVENT_KEY_PRESS, keyboard_test_helper_handler);
     event_bus_subscribe(&g_event_bus, EVENT_KEY_RELEASE, keyboard_test_helper_handler);
     event_bus_subscribe(&g_event_bus, EVENT_KEY_REPEAT, keyboard_test_helper_handler);
-
     event_bus_subscribe(&g_event_bus, EVENT_MOTOR_ROTATION_COMPLETE, LED_service_handle_event);
 
     state_manager_init();
 
+    // TODO: need debug?
 #ifdef DEBUG
     debug_serial_printf("[%u] DEBUG configuration started\r\n", get_current_time_ms());
 #endif
 
     debug_serial_printf("[%u] System initialized\r\n", get_current_time_ms()); delay_ms(1000); // Отладка
 
+    // TODO: make event?
     LED_service_execute(BUZZER_CONTROL, &LED_pattern_heartbeat, false);
 
     while (1) {

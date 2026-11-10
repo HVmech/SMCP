@@ -1,5 +1,4 @@
 #pragma once
-
 #ifndef SMCP_DEBUG_ASSERT_H
 #define SMCP_DEBUG_ASSERT_H
 

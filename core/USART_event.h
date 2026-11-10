@@ -1,20 +1,16 @@
 #pragma once
-
 #ifndef SMCP_USART_EVENT_H
 #define SMCP_USART_EVENT_H
 
 #include <globals/USART_globals.h>
-
 #include <core/event_bus.h>
 #include <core/event.h>
-
 #include <drivers/SysTick_driver.h>
-
 #include <common/asm.h>
 
 #define CONST_USART_RX_UPDATE_INTERVAL 20
 
-static inline bool generate_USART_update_event(event_bus_t *bus) {
+static inline bool generate_USART_update_event(event_bus_t *bus) { // Генерация обновлений приема по USART
     static uint32_t last_upd_tick = 0;
     bool result = true;
 

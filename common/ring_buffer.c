@@ -1,5 +1,4 @@
 #include <common/ring_buffer.h>
-
 #include <libopencmsis/core_cm3.h>
 #include <common/asm.h>
 #include <common/utils.h>

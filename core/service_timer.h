@@ -1,5 +1,4 @@
 #pragma once
-
 #ifndef SMCP_SERVICE_TIMER_H
 #define SMCP_SERVICE_TIMER_H
 

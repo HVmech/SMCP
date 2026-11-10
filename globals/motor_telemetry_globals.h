@@ -4,13 +4,13 @@
 
 #include <common/types.h>
 
-typedef struct {
-    uint8_t active_phase;
-    uint32_t progress_percentage;
+typedef struct { // Структура телеметрии движения
+    uint8_t active_phase; // Текущая фаза движения
+    uint32_t progress_percentage; // Общий прогресс в процентах
 } motor_telemetry_t;
 
-extern volatile bool g_generate_motor_telemetry_updates;
-extern volatile bool g_motor_telemetry_started;
-extern volatile motor_telemetry_t g_motor_telemetry;
+extern volatile bool g_generate_motor_telemetry_updates; // Признак включения телеметрии
+extern volatile bool g_motor_telemetry_started; // Признак запуска телеметрии
+extern volatile motor_telemetry_t g_motor_telemetry; // Переменная для хранения телеметрии
 
 #endif // SMCP_MOTOR_TELEMETRY_GLOBALS_H

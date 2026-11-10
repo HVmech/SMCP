@@ -1,9 +1,10 @@
 #include <drivers/LCD_driver.h>
-
 #include <libopencm3/stm32/i2c.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/cm3/nvic.h>
+
+// TODO: adapt?
 
 //#include "usbcdc.h"    
 //#include "lcd1.h"

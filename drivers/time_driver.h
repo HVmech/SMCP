@@ -1,10 +1,8 @@
 #pragma once
-
 #ifndef SMCP_TIME_DRIVER_H
 #define SMCP_TIME_DRIVER_H
 
 #include <drivers/SysTick_driver.h>
-
 #include <common/asm.h>
 #include <common/types.h>
 #include <common/debug_assert.h>

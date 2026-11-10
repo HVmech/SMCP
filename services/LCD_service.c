@@ -1,39 +1,34 @@
 #include <services/LCD_service.h>
-
 #include <globals/LCD_globals.h>
-
 #include <services/motion_controller_service.h>
 #include <services/debug_serial_service.h>
-
 #include <core/app_context.h>
 #include <core/input_data.h>
 #include <core/service_timer.h>
 #include <core/event_dispatcher.h>
 #include <core/event_bus.h>
-
 #include <drivers/LCD_control_timer_driver.h>
 #include <drivers/LCD_driver.h>
 #include <drivers/time_driver.h>
-
 #include <common/utils.h>
 #include <common/types.h>
 
-typedef struct {
+typedef struct { // Символьное поле
     uint8_t ch;
     bool blink;
 } LCD_field_t;
 
-typedef struct {
+typedef struct { // Буфер полей
     LCD_field_t fields[LCD_LENGTH * LCD_HEIGHT];
 } LCD_buffer_t;
 
-typedef struct {
-    LCD_buffer_t current;
-    LCD_buffer_t previous;
-    bool change[LCD_LENGTH * LCD_HEIGHT];
+typedef struct { // Контроллер отображения
+    LCD_buffer_t current; // Текущий кадр
+    LCD_buffer_t previous; // Предыдущий кадр
+    bool change[LCD_LENGTH * LCD_HEIGHT]; // Массив признаков обновления
 } LCD_controller_t;
 
-static LCD_controller_t lcd = {0};
+static LCD_controller_t lcd = {0}; // Внутренняя переменная для хранения буферизации
 
 void LCD_set_char(uint8_t row, uint8_t column, uint8_t ch, bool blink) {
     DEBUG_ASSERT(row < LCD_HEIGHT && column < LCD_LENGTH);
@@ -170,44 +165,8 @@ void LCD_handler(const event_t *evt_inp) {
         default: { break; }
     }
 }
-/*
-void LCD_handler(const event_t *evt_inp) {
-    static bool prev_blink_phase = false;
-    static bool prev_changed = false;
-    
-    switch (evt_inp->id) {
-        case EVENT_LCD_UPDATE_REQUEST: {
-            bool blink_phase_has_changed = prev_blink_phase != g_lcd_blink_phase;
-            prev_blink_phase = g_lcd_blink_phase;
 
-            lcd_cursor_home();
-            prev_changed = false;
-
-            for (uint8_t i = 0; i < LCD_LENGTH * LCD_HEIGHT; ++i) {
-                
-                if (lcd.change[i] || (lcd.current.fields[i].blink && blink_phase_has_changed)) {
-                    lcd.previous.fields[i].blink = lcd.current.fields[i].blink;
-                    lcd.previous.fields[i].ch = lcd.current.fields[i].ch;
-                    prev_changed = true;
-                    if (!prev_changed) { lcd_set_cursor_place(i / LCD_LENGTH + 1, i % LCD_LENGTH + 1); }
-                    uint8_t ch = lcd.current.fields[i].blink ? (g_lcd_blink_phase ? lcd.current.fields[i].ch : LCD_CHAR_EOF) : lcd.current.fields[i].ch;
-                    if (ch == LCD_CHAR_EOF) { ch = '_'; }
-                    if (i == LCD_LENGTH - 1 ) {
-                        lcd_set_cursor_place(2, 1);
-                    }
-                    
-                    lcd_write_byte(ch, 1);
-                }
-                else {
-                    prev_changed = false;
-                }
-            }
-            break;
-        }
-        default: { break; }
-    }
-}
-*/
+// TODO: rename? delete? ifdef?
 void LCD_test_helper_handler(const event_t *evt_inp) {
     static bool prev_blink_phase = false;
     
@@ -274,7 +233,6 @@ void LCD_init(void) {
     memset(&lcd, 0, sizeof(LCD_controller_t));
 
     lcd_init(LCD_control_timer_async_delay_us);
-    //lcd_init(LCD_delay_block);
     LCD_control_timer_init(1, 7, lcd_process, lcd_delay_stop);
     lcd_init_display();
     delay_ms(1000);

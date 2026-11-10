@@ -4,6 +4,8 @@
 
 #include <common/types.h>
 
+// TODO: adapt?
+
   /***********************/
  /* FAST CONFIGURATION  */
 /***********************/

@@ -1,10 +1,8 @@
 #pragma once
-
 #ifndef SMCP_EVENT_BUS_H
 #define SMCP_EVENT_BUS_H
 
 #include <core/event.h>
-
 #include <common/ring_buffer.h>
 #include <common/types.h>
 

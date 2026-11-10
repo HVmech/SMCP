@@ -1,22 +1,23 @@
 #include <core/idle_state.h>
-
 #include <core/app_context.h>
 #include <core/input_data.h>
 #include <core/event_dispatcher.h>
 #include <core/event.h>
-
 #include <services/debug_serial_service.h>
 #include <services/LCD_service.h>
 #include <services/motion_controller_service.h>
-
 #include <drivers/matrix_keyboard_driver.h>
 #include <drivers/time_driver.h>
-
 #include <common/debug_assert.h>
 #include <common/utils.h>
 #include <common/types.h>
 
-static inline void idle_state_display_angle(uint8_t row, bool right_alignment) {
+void idle_state_event_handler(const event_t *evt);
+void idle_state_enter(void);
+void idle_state_exit(void);
+
+// Внутренние функции:
+static inline void idle_state_display_angle(uint8_t row, bool right_alignment) { // Вывод текущего угла
     DEBUG_ASSERT(row < LCD_HEIGHT);
 
     const uint8_t angle_difference = ANGLE_PRECISION > INPUT_FRACTIONAL_DIGITS ? (ANGLE_PRECISION - INPUT_FRACTIONAL_DIGITS) : 0;
@@ -76,14 +77,28 @@ static inline void idle_state_display_angle(uint8_t row, bool right_alignment) {
     DEBUG_ASSERT(pos == start_pos - all_angle_fields);
 }
 
-static inline void idle_state_display(void) {
+static inline void idle_state_display(void) { // Обновление дисплея
     LCD_clear_display();
     LCD_set_string(CONST_IDLE_STATE_INFO_ROW, 0, "CURRENT ANGLE:", false);
     idle_state_display_angle(CONST_IDLE_STATE_ANLE_ROW, true);
     LCD_update_request(false);
 }
 
-void idle_state_event_handler(const event_t *evt) {
+static inline void idle_state_manage_subscriptions(bool state) { // Функция управления подписками
+    event_bus_t *bus = event_dispatcher_get_bus();
+
+    if (state) {
+        event_bus_subscribe(bus, EVENT_KEY_RELEASE, idle_state_event_handler);
+        event_bus_subscribe(bus, EVENT_KEY_REPEAT, idle_state_event_handler);
+    }
+    else {
+        event_bus_unsubscribe(bus, EVENT_KEY_RELEASE, idle_state_event_handler);
+        event_bus_unsubscribe(bus, EVENT_KEY_REPEAT, idle_state_event_handler);
+    }
+}
+
+// Основные функции:
+void idle_state_event_handler(const event_t *evt) { // Обработчик событий
     DEBUG_ASSERT(evt);
 
     switch (evt->id) {
@@ -93,10 +108,8 @@ void idle_state_event_handler(const event_t *evt) {
 
             if (duration <= NORMAL_PRESS_DURATION_MS) {
                 switch (key) {
-                    case KEY_F1:
-                    case KEY_F2: {
-                        const uint8_t input_mode = key - KEY_F1;
-                        app_context.input_context.mode = input_mode;
+                    case KEY_ENT: {
+                        app_context.input_context.mode = INPUT_CURRENT_ANGLE;
                         app_state_transition_request(APP_STATE_INPUT);
                         break;
                     }
@@ -105,33 +118,40 @@ void idle_state_event_handler(const event_t *evt) {
             }
             break;
         }
+        case EVENT_KEY_REPEAT: {
+            const key_t key = evt->payload.data.unsigned_value;
+
+            switch (key) {
+                case KEY_F1: {
+                    app_context.input_context.mode = INPUT_RELATIVE_ANGLE;
+                    app_state_transition_request(APP_STATE_INPUT);
+                    break;
+                }
+                case KEY_F2: {
+                    app_context.input_context.mode = INPUT_CORRECTION_ANGLE;
+                    app_state_transition_request(APP_STATE_INPUT);
+                    break;
+                }
+                default: { return; }
+            }
+            break;
+        }
         default: { return; }
     }
 }
 
-static inline void idle_state_manage_subscriptions(bool state) {
-    event_bus_t *bus = event_dispatcher_get_bus();
-
-    if (state) {
-        event_bus_subscribe(bus, EVENT_KEY_RELEASE, idle_state_event_handler);
-    }
-    else {
-        event_bus_unsubscribe(bus, EVENT_KEY_RELEASE, idle_state_event_handler);
-    }
-}
-
-void idle_state_enter(void) {
+void idle_state_enter(void) { // Инициализация состояния
     idle_state_display();
     idle_state_manage_subscriptions(true);
     debug_serial_printf("IDLE\n");
 }
 
-void idle_state_exit(void) {
+void idle_state_exit(void) { // Выход из состояния
     idle_state_manage_subscriptions(false);
     debug_serial_printf("STATE: IDLE --> ");
 }
 
-const app_state_t idle_state = {
+const app_state_t idle_state = { // Структура с указателями на функции состояния
     .enter = idle_state_enter,
     .exit = idle_state_exit,
     .event_handler = idle_state_event_handler

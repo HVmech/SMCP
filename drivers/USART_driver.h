@@ -1,26 +1,25 @@
 #pragma once
-
 #ifndef SMCP_USART_DRIVER_H
 #define SMCP_USART_DRIVER_H
 
 #include <common/ring_buffer.h>
 #include <common/types.h>
 
-typedef enum {
+typedef enum { // Перечислитель USART
     USART_1,
     USART_2,
     USART_3,
     USART_CNT
 } USART_port_e;
 
-typedef struct {
-    USART_port_e port;
-    uint32_t baudrate;
-    bool remap;
-    bool enable_stats;
+typedef struct { // Конфигурация USART
+    USART_port_e port; // Порт GPIO
+    uint32_t baudrate; // Скорость
+    bool remap; // Альтернативный пин?
+    bool enable_stats; // Вывод статистики?
 } USART_config_t;
 
-typedef struct {
+typedef struct { // Статистика USART
     uint8_t overrun_errors;
     uint8_t framing_errors;
     uint8_t parity_errors;
@@ -35,11 +34,11 @@ typedef struct {
     bool is_enabled;
 } USART_stats_t;
 
-typedef struct {
-    USART_port_e port;
-    ring_buffer_t TX_buff;
-    ring_buffer_t RX_buff;
-    USART_stats_t stats;
+typedef struct { // Структура драйвера
+    USART_port_e port; // Порт
+    ring_buffer_t TX_buff; // Буфер передачи
+    ring_buffer_t RX_buff; // Буфер приема
+    USART_stats_t stats; // Статистика
 } USART_driver_t;
 
 bool USART_init(USART_driver_t *drv, const USART_config_t *cfg, void *TX_buff, uint16_t TX_size, void *RX_buff, uint16_t RX_size); // Инициализация

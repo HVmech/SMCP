@@ -1,7 +1,5 @@
-#include <drivers/debounce_timer_driver.h>
-
 #include <common/debug_assert.h>
-
+#include <drivers/debounce_timer_driver.h>
 #include <libopencm3/stm32/timer.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/cm3/nvic.h>
@@ -31,7 +29,7 @@ void debounce_timer_init(uint32_t period_ms, uint8_t priority, void_func_ptr_t I
 void debounce_timer_enable(void) { timer_enable_counter(TIM2); }
 void debounce_timer_disable(void) { timer_disable_counter(TIM2); timer_set_counter(TIM2, 0); }
 
-void TIM2_Handler(void) { 
+void TIM2_Handler(void) { // Обработчик прерываний таймера
     timer_clear_flag(TIM2, TIM_SR_UIF);
     debounce_timer_ISR_func();
 }

@@ -23,12 +23,9 @@ void LCD_set_string(uint8_t row, uint8_t column, const char* str, bool blink);
 void LCD_set_integer(uint8_t row, uint8_t column, uint32_t value, bool blink);
 void LCD_clear_line(uint8_t row);
 void LCD_clear_display(void);
-
 void LCD_update_request(bool from_isr);
-
 void LCD_handler(const event_t *evt_inp);
-void LCD_test_helper_handler(const event_t *evt_inp);
-
+void LCD_test_helper_handler(const event_t *evt_inp); // Дублирование вывода дисплея через отладочный USART
 void LCD_init(void);
 
 #endif // SMCP_LCD_SERVICE_H

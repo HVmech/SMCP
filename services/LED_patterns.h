@@ -1,5 +1,4 @@
 #pragma once
-
 #ifndef SMCP_LED_PATTERNS_H
 #define SMCP_LED_PATTERNS_H
 

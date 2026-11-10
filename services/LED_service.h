@@ -1,14 +1,14 @@
 #pragma once
-
 #ifndef SMCP_LED_SERVICE_H
 #define SMCP_LED_SERVICE_H
+// TODO: rename service? led service -> logic output pin control service? add PWM modes and function modes?
 
 #include <core/event.h>
 #include <drivers/LED_driver.h>
 
 #define CONST_LED_SERVICE_MAX_LEDS 4 // Максимальное количество управляемых диодов
 
-typedef enum {
+typedef enum { // Перечислитель подключенных выходов службы
     LED_BUILTIN = 0,
     LED_MOTOR_STOP_BUTTON,
     BUZZER_CONTROL

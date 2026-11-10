@@ -1,5 +1,4 @@
 #pragma once
-
 #ifndef SMCP_DEBUG_SERIAL_SERVICE_H
 #define SMCP_DEBUG_SERIAL_SERVICE_H
 
@@ -22,7 +21,6 @@ void debug_serial_printf(const char *format, ...); // Форматированн
 bool debug_serial_getchar(uint8_t *ch);
 
 // Утилиты
-//void debug_serial_echo_simple(void);
 void serial_print_stats(void);
 
 // События

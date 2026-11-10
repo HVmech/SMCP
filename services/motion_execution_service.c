@@ -1,23 +1,17 @@
 #include <services/motion_execution_service.h>
-
 #include <globals/motor_telemetry_globals.h>
-
 #include <core/service_timer.h>
 #include <core/event_dispatcher.h>
 #include <core/event_bus.h>
 #include <core/event.h>
-
 #include <services/debug_serial_service.h>
 #include <services/motion_planning_service.h>
-
 #include <drivers/step_timer_driver.h>
 #include <drivers/motion_control_driver.h>
 #include <drivers/time_driver.h>
 #include <drivers/SysTick_driver.h>
-
 #include <common/utils.h>
 #include <common/debug_assert.h>
-
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/timer.h>
@@ -29,13 +23,11 @@ static uint16_t arr = 0;
 static uint16_t ccr = 0;
 static uint16_t cnt = 0;
 
-// ======= Вспомогательные функции =======
-
+// Вспомогательные функции:
 static inline uint32_t get_period(uint32_t freq_hz) { return f_tim / freq_hz; } // Расчет периода для заданной частоты в тактах таймера
 
-static inline void stop_motion(bool state) {
+static inline void stop_motion(bool state) { // Остановка движения
     step_timer_stop();
-    //set_motion_control_enable(false); // Отключение двигателя
     config.is_running = false;
     g_generate_motor_telemetry_updates = false;
 
@@ -78,8 +70,7 @@ static inline void load_next_phase(void) { // Загрузка следующе�
     }
 }
 
-// ===== Публичные функции =====
-
+// Основные функции:
 void motion_executor_init(board_pin_e dir_pin, board_pin_e ena_pin) {
     DEBUG_ASSERT(!config.is_initialized);
 
@@ -155,16 +146,10 @@ void motion_executor_start(motion_block_t* block) { // Запуск выполн
 void motion_executor_stop(void) { // Программная остановка выполнения
     step_timer_disable_irq(); // Отключение прерываний таймера
     step_timer_disable_output(); // Отключение выхода сигнала
-    //step_timer_stop(); // Остановка таймера
-
-    //set_motion_control_enable(false); // Отключение двигателя
-
-    //config.is_running = false;
-    //g_generate_motor_telemetry_updates = false;
-
     stop_motion(false);
 }
 
+// TODO: need it?
 //bool motion_executor_is_running(void) { return config.is_running; }
 
 void motion_executor_notify(bool state) {
@@ -186,21 +171,12 @@ void motion_executor_notify(bool state) {
 }
 
 void motion_executor_telemetry_update(void) {
-    //uint32_t phase_updates_milestone = 0;
-
-    //for (uint8_t i = 0; i <= config.current_phase; ++i) {
-    //    phase_updates_milestone += ((i == PHASE_TAIL) ? 1 : config.current_block.motion_phases[i].update_steps);
-    //}
-
     g_motor_telemetry.active_phase = config.current_phase;
 
     if (config.current_phase == PHASE_TAIL || config.current_block.total_updates == 0) {
         g_motor_telemetry.progress_percentage = 1000;
     } else {
-        //uint32_t percentage = ((phase_updates_milestone - config.phase_steps_left) * 1000) / config.current_block.total_updates;
-        //g_motor_telemetry.progress_percentage = (percentage + 5) / 10;
         uint32_t div = config.current_block.total_updates;
-        //uint32_t mul1 = phase_updates_milestone - config.phase_updates_left;
         uint32_t mul1 = config.phase_updates_made;
         uint32_t temp_gcd = gcd(mul1, div);
         mul1 /= temp_gcd;
@@ -210,10 +186,6 @@ void motion_executor_telemetry_update(void) {
         temp_gcd = gcd(mul2, div);
         mul2 /= temp_gcd;
         div /= temp_gcd;
-
-        //debug_serial_printf("mul1 = %u\r\n", mul1);
-        //debug_serial_printf("mul2 = %u\r\n", mul2);
-        //debug_serial_printf("div = %u\r\n", div);
 
         DEBUG_ASSERT((uint64_t)mul1 * (uint64_t)mul2 < UINT32_MAX);
         DEBUG_ASSERT(div != 0);
@@ -245,11 +217,7 @@ uint32_t motion_executor_get_position_change_in_steps(void) {
     return result;
 }
 
-void motion_executor_recovery(void) {
-    step_timer_recovery();
-}
-
-// ======= Обработчики прерываний =======
+void motion_executor_recovery(void) { step_timer_recovery(); }
 
 void TIM1_UP_Handler(void) { // Прерывание обновления фазы
     // 0. Обновление флага прерывания

@@ -1,9 +1,8 @@
-#include "common/asm.h"
+#include <common/asm.h>
 #include <core/event_bus.h>
 #include <common/debug_assert.h>
 #include <common/utils.h>
 #include <common/sync.h>
-
 #include <services/debug_serial_service.h>
 #include <drivers/time_driver.h>
 

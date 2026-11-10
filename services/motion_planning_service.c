@@ -1,11 +1,9 @@
 #include <services/motion_planning_service.h>
-
 #include <services/debug_serial_service.h>
-
 #include <drivers/time_driver.h>
-
 #include <common/debug_assert.h>
 
+// TODO: config?
 #define PWM_PRESCALER_UPLIM 65535
 #define PWM_PRESCALER_BTMLIM 36
 
@@ -206,9 +204,6 @@ motion_block_t plan_motion(uint32_t total_steps, bool reverse) {
     DEBUG_ASSERT(f == f_min);
     DEBUG_ASSERT(df == 0);
     DEBUG_ASSERT(Nj * 4 + Na * 2 + Nc == total_updates);
-
-    //debug_serial_printf("delay = %u\r\n", 10000);
-    //delay_ms(10000);
 
     return result;
 }

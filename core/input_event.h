@@ -6,11 +6,8 @@
 #include <core/input_state.h>
 #include <core/event_bus.h>
 #include <core/event.h>
-
 #include <services/LCD_service.h>
-
 #include <drivers/time_driver.h>
-
 #include <common/asm.h>
 
 #define CONST_INPUT_STATE_UPDATE_INTERVAL 1200

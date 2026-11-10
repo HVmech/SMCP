@@ -1,15 +1,17 @@
 #include <core/error_state.h>
-
 #include <core/event_dispatcher.h>
 #include <core/event.h>
-
 #include <services/LCD_service.h>
 #include <services/debug_serial_service.h>
-
 #include <drivers/matrix_keyboard_driver.h>
 #include <drivers/time_driver.h>
 
-static inline void error_state_display(void) {
+void error_state_event_handler(const event_t *evt);
+void error_state_enter(void);
+void error_state_exit(void);
+
+// Вспомогательные функции:
+static inline void error_state_display(void) { // Обновление дисплея с текущим состоянием
     LCD_clear_display();
 
     LCD_set_string(CONST_ERROR_STATE_INFO_ROW, 0, "ERROR: ", false);
@@ -19,7 +21,21 @@ static inline void error_state_display(void) {
     LCD_update_request(false);
 }
 
-void error_state_event_handler(const event_t *evt) {
+static inline void error_state_manage_subscriptions(bool state) { // Управление подписками событий
+    event_bus_t *bus = event_dispatcher_get_bus();
+
+    if (state) {
+        event_bus_subscribe(bus, EVENT_KEY_RELEASE, error_state_event_handler);
+        event_bus_subscribe(bus, EVENT_MOTOR_RECOVERY_COMPLETE, error_state_event_handler);
+    }
+    else {
+        event_bus_unsubscribe(bus, EVENT_KEY_RELEASE, error_state_event_handler);
+        event_bus_unsubscribe(bus, EVENT_MOTOR_RECOVERY_COMPLETE, error_state_event_handler);
+    }
+}
+
+// Основные функции:
+void error_state_event_handler(const event_t *evt) { // Обработчик событий
     DEBUG_ASSERT(evt);
 
     switch (evt->id) {
@@ -53,31 +69,18 @@ void error_state_event_handler(const event_t *evt) {
     }
 }
 
-static inline void error_state_manage_subscriptions(bool state) {
-    event_bus_t *bus = event_dispatcher_get_bus();
-
-    if (state) {
-        event_bus_subscribe(bus, EVENT_KEY_RELEASE, error_state_event_handler);
-        event_bus_subscribe(bus, EVENT_MOTOR_RECOVERY_COMPLETE, error_state_event_handler);
-    }
-    else {
-        event_bus_unsubscribe(bus, EVENT_KEY_RELEASE, error_state_event_handler);
-        event_bus_unsubscribe(bus, EVENT_MOTOR_RECOVERY_COMPLETE, error_state_event_handler);
-    }
-}
-
-void error_state_enter(void) {
+void error_state_enter(void) { // Инициализация состояния при назначении
     error_state_display();
     error_state_manage_subscriptions(true);
     debug_serial_printf("ERROR\n");
 }
 
-void error_state_exit(void) {
+void error_state_exit(void) { // Завершение состояния при смене
     error_state_manage_subscriptions(false);
     debug_serial_printf("STATE: ERROR --> ");
 }
 
-const app_state_t error_state = {
+const app_state_t error_state = { // Структура с указателями на функции состояния
     .enter = error_state_enter,
     .exit = error_state_exit,
     .event_handler = error_state_event_handler

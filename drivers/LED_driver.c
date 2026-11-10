@@ -1,10 +1,10 @@
 #include <drivers/LED_driver.h>
-
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
 
 void LED_set(const LED_t* config, bool state) {
-    DEBUG_ASSERT(config);
+    DEBUG_ASSERT(config); // Валидация указателя
+
     // state   : 1, 1, 0, 0
     // inverted: 0, 1, 0, 1
     // result  : 1, 0, 0, 1

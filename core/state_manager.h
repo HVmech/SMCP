@@ -8,9 +8,10 @@
 #include <core/active_state.h>
 #include <core/error_state.h>
 
+// TODO: make hidden?
 extern app_state_code_t current_state;
 
-void state_manager_init(void);
-void state_manager_event_handler(const event_t *evt);
+void state_manager_init(void); // Инициализация
+void state_manager_event_handler(const event_t *evt); // Обработчик событий
 
 #endif // SMCP_STATE_MANAGER_H

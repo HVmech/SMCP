@@ -1,10 +1,8 @@
 #pragma once
-
 #ifndef SMCP_SYSTICK_DRIVER_H
 #define SMCP_SYSTICK_DRIVER_H
 
 #include <drivers/RTC_driver.h>
-
 #include <common/types.h>
 
 #define CONST_MS_PER_TICK 1U

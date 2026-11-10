@@ -1,10 +1,11 @@
-#include <common/types.h>
-#include <common/debug_assert.h>
-
+#pragma once
 #ifndef SMCP_RING_BUFFER_H
 #define SMCP_RING_BUFFER_H
 
-// Кольцевой буфер для соглашения SPSC для main <---> ISR
+#include <common/types.h>
+#include <common/debug_assert.h>
+
+// Кольцевой буфер с соглашением SPSC для main <---> ISR
 
 typedef struct {
     volatile uint16_t write; // Счетчик записей

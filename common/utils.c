@@ -28,7 +28,7 @@ static inline void memcpy_fixed(void *dst, const void *src, uint16_t size) {
 static inline void memcpy_long(void *dst, const void *src, uint16_t size) { // Копирование памяти побайтово (версия для больших областей)
     DEBUG_ASSERT(dst && src && size != 0); // Проверка валидности входных параметров
 
-    // ... Копирование через DMA (не реализовано)
+    // TODO: Копирование через DMA (не реализовано)
     DEBUG_ASSERT(size < 255); // Гарантия отсутствия переполнения у функции для малых областей (веременно)
     memcpy_short(dst, src, size); // (временно)
 }
@@ -50,18 +50,18 @@ void memcpy(void *dst, const void *src, uint16_t size) { // Копировани
     }
 }
 
-void* memset(void* dest, int val, unsigned int count) {
-    DEBUG_ASSERT(dest);
+void* memset(void* dest, int val, unsigned int count) { // Заполнение памяти побайтово
+    DEBUG_ASSERT(dest); // Проверка валидности указателя
 
-    unsigned char* d = (unsigned char*)dest;
-    unsigned char v = (unsigned char)val;
+    unsigned char* d = (unsigned char*)dest; // Интерпретация указателя
+    unsigned char v = (unsigned char)val; // Интерпретация входящего значения
 
-    while (count--) { *d = v; ++d; }
+    while (count--) { *d = v; ++d; } // Проход по циклу
 
     return dest;
 }
 
-uint8_t digcnt(uint32_t value) {
+uint8_t digcnt(uint32_t value) { // Подсчет разрядов числа
     uint8_t digits_count = 0;
 
     while (value > 0) {
@@ -72,7 +72,7 @@ uint8_t digcnt(uint32_t value) {
     return digits_count;
 }
 
-uint8_t trzercnt(uint32_t value, uint8_t digit_count) {
+uint8_t trzercnt(uint32_t value, uint8_t digit_count) { // Определение количества замыкающих нулей числа
     uint8_t trailing_zeros = 0;
 
     for (uint8_t i = 0; i < digit_count; ++i) {
@@ -85,7 +85,7 @@ uint8_t trzercnt(uint32_t value, uint8_t digit_count) {
     return trailing_zeros;
 }
 
-uint32_t gcd(uint32_t a, uint32_t b) {
+uint32_t gcd(uint32_t a, uint32_t b) { // Определение наибольшего общего делителя
     uint32_t temp;
     while (b != 0) {
         temp = b;

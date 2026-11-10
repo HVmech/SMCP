@@ -1,8 +1,10 @@
 #pragma once
-
 #ifndef SMCP_MOTION_PANNING_SERVICE_H
 #define SMCP_MOTION_PANNING_SERVICE_H
 
+#include <common/types.h>
+
+// TODO: config?
 #define DRIVER_PUL_MAX_FREQ_HZ 200000 // Потолок частоты для драйвера (DM860A)
 #define SYSTEM_PUL_MAX_FREQ_HZ (5 * DRIVER_PUL_MAX_FREQ_HZ / 8) // Практический потолок частоты (DM860A)
 #define MOTOR_FULL_STEPS_PER_REV 200 // Кол-во шагов за оборот
@@ -16,16 +18,14 @@
 
 #define STEPPER_ISR_HZ 10000U // Частота настроечного таймера
 
-#include <common/types.h>
+extern const uint32_t f_update_max; // Максимальная частота прерываний
+extern const uint32_t f_clk; // Частота работы МК
+extern const uint32_t pwm_prescaler; // Предделитель ШИМа
 
-extern const uint32_t f_update_max;
-extern const uint32_t f_clk;
-extern const uint32_t pwm_prescaler;
-
-extern const uint32_t v_min;
-extern const uint32_t v_max;
-extern const uint32_t a_max;
-extern const uint32_t j_max;
+extern const uint32_t v_min; // Минимальная скорость
+extern const uint32_t v_max; // Максимальная скорость
+extern const uint32_t a_max; // Максимальное ускорение
+extern const uint32_t j_max; // Максимальный рывок
 
 extern const uint32_t f_tim; // Частота обновления таймера
 
@@ -36,7 +36,7 @@ extern const int32_t ddf_max; // Максимальное изменение у�
 
 extern const uint32_t repetitions; // Количество обновлений для генерации прерывания
 
-typedef enum {
+typedef enum { // Перечислитель фаз движения
     PHASE_J1 = 0,
     PHASE_A1,
     PHASE_J2,
@@ -48,20 +48,20 @@ typedef enum {
     PHASE_COUNT
 } motion_phase_type_t;
 
-typedef struct {
-    int32_t f0;
-    int32_t df0;
-    int32_t ddf0;
-    uint32_t update_steps;
+typedef struct { // Структура фазы движения
+    int32_t f0; // Стартовая частота
+    int32_t df0; // Стартовое приращение частоты
+    int32_t ddf0; // Стартовое приращения приращения частоты
+    uint32_t update_steps; // Количество обновлений
 } motion_phase_t;
 
-typedef struct {
-    motion_phase_t motion_phases[PHASE_COUNT];
-    bool tail_phase;
-    bool reverse_direction;
-    uint32_t total_updates;
+typedef struct { // Структура блока движения
+    motion_phase_t motion_phases[PHASE_COUNT]; // Массив фаз движения
+    bool tail_phase; // Наличие замыкающей фазы
+    bool reverse_direction; // Направление
+    uint32_t total_updates; // Количество обновлений
 } motion_block_t;
 
-motion_block_t plan_motion(uint32_t total_steps, bool reverse);
+motion_block_t plan_motion(uint32_t total_steps, bool reverse); // Рассчитать движение
 
 #endif // SMCP_MOTION_PANNING_SERVICE_H

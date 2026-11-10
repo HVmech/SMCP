@@ -3,15 +3,14 @@
 #define SMCP_LCD_EVENT_H
 
 #include <globals/LCD_globals.h>
-
 #include <services/LCD_service.h>
-
 #include <drivers/time_driver.h>
 
-static inline bool generate_LCD_update_event(void) {
+static inline bool generate_LCD_update_event(void) { // Генерация обновлений дисплея для смены фазы мигания символов
     static uint32_t last_blink_update = 0;
     bool result = true;
 
+    // TODO: turn off by g_lcd_blink? 
     if (get_current_time_ms() - last_blink_update >= CONST_LCD_BLINK_INTERVAL) {
         last_blink_update = get_current_time_ms();
 

@@ -1,47 +1,48 @@
 #include <core/active_state.h>
-
 #include <globals/motor_telemetry_globals.h>
-
 #include <core/app_context.h>
 #include <core/event_dispatcher.h>
 #include <core/event.h>
-
 #include <services/debug_serial_service.h>
 #include <services/LCD_service.h>
 #include <services/LED_service.h>
-
 #include <drivers/matrix_keyboard_driver.h>
 #include <drivers/time_driver.h>
-
 #include <common/utils.h>
 
+void active_state_event_handler(const event_t *evt);
 void active_state_enter(void);
 void active_state_exit(void);
-void active_state_event_handler(const event_t *evt);
 
-static inline void active_state_display_motor_telemetry(uint8_t current_phase, uint32_t phase_progress_percentage) {
-    LCD_clear_display();
-    LCD_set_string(0, 0, "ROTATING:", false);
+// Вспомогательные функции:
+static inline void active_state_display_motor_telemetry(uint8_t current_phase, uint32_t phase_progress_percentage) { // Индикация телеметрии движения
+    LCD_clear_display(); // Очистка дисплея
+
+    // Выдача индикации:
+    // Статическая надпись о движении:
+    // LCD_set_string(0, 0, "ROTATING:", false); - нужно ли дублирование с active_state_display?
+
+    // Информация о текущей фазе движения
     LCD_set_string(1, 0, "Ph: ", false);
     LCD_set_integer(1, 4, current_phase + 1, false);
-    LCD_set_string(1, 5, " Pr: ", false);
 
+    // Информация об общем прогрессе движения
+    LCD_set_string(1, 5, " Pr: ", false);
     const uint8_t integer_digits = digcnt(phase_progress_percentage / 10);
     const uint8_t integer_digits_count = MAX_VALUE(integer_digits, 1);
     LCD_set_integer(1, 10, phase_progress_percentage / 10, false);
     LCD_set_char(1, 10 + integer_digits_count, '.', false);
     LCD_set_integer(1, 10 + integer_digits_count + 1, phase_progress_percentage % 10, false);
     LCD_set_char(1, 10 + integer_digits_count + 2, '%', false);
-    //debug_serial_printf("ppp = %u\r\n", phase_progress_percentage);
 }
 
-static inline void active_state_display(void) {
+static inline void active_state_display(void) { // Обновление дисплея
     LCD_set_string(0, 0, "ROTATING:", false);
     active_state_display_motor_telemetry(g_motor_telemetry.active_phase, 0);
     LCD_update_request(false);
 }
 
-static inline void active_state_emergency_button_led_control(bool state) {
+static inline void active_state_emergency_button_led_control(bool state) { // Управление диодом кнопки аварийной остановки
     event_t evt = {0};
     event_bus_t *bus = event_dispatcher_get_bus();
     const uint32_t evt_time = get_current_time_ms();
@@ -56,11 +57,11 @@ static inline void active_state_emergency_button_led_control(bool state) {
     event_bus_post(bus, &evt);
 }
 
-static inline void active_state_start_preparation(void) {
+static inline void active_state_start_preparation(void) { // Запуск подготовки к движению
     active_state_emergency_button_led_control(true);
 }
 
-static inline void active_state_end_preparation_notify(void) {
+static inline void active_state_end_preparation_notify(void) { // Завершение подготовки к движению
     event_t evt = {0};
     event_bus_t *bus = event_dispatcher_get_bus();
     const uint32_t evt_time = get_current_time_ms();
@@ -73,7 +74,7 @@ static inline void active_state_end_preparation_notify(void) {
     event_bus_post(bus, &evt);
 }
 
-static inline void active_state_manage_subscriptions(bool state) {
+static inline void active_state_manage_subscriptions(bool state) { // Управление подписками
     event_bus_t *bus = event_dispatcher_get_bus();
 
     if (state) {
@@ -90,7 +91,34 @@ static inline void active_state_manage_subscriptions(bool state) {
     }
 }
 
-void active_state_enter(void) {
+// Основные функции:
+void active_state_event_handler(const event_t *evt) { // Обработчик событий активного состояния
+    DEBUG_ASSERT(evt);
+
+    switch (evt->id) {
+        case EVENT_MOTOR_ROTATION_PREPARE: {
+            active_state_start_preparation();
+            active_state_end_preparation_notify();
+            break;
+        }
+        case EVENT_MOTOR_TELEMETRY_UPDATE: {
+            active_state_display_motor_telemetry(g_motor_telemetry.active_phase, g_motor_telemetry.progress_percentage);
+            LCD_update_request(false);
+            break;
+        }
+        case EVENT_MOTOR_ROTATION_COMPLETE: {
+            app_state_transition_request(APP_STATE_IDLE);
+            break;
+        }
+        case EVENT_MOTOR_EMERGENCY_STOP: {
+            app_state_transition_request(APP_STATE_ERROR);
+            break;
+        }
+        default: { return; }
+    }
+}
+
+void active_state_enter(void) { // Функция инициализации активного состояния
     active_state_display();
     active_state_manage_subscriptions(true);
 
@@ -120,39 +148,13 @@ void active_state_enter(void) {
     debug_serial_printf("ACTIVE\n");
 }
 
-void active_state_exit(void) {
+void active_state_exit(void) { // Функция выхода из активного состояния
     active_state_emergency_button_led_control(false);
     active_state_manage_subscriptions(false);
     debug_serial_printf("STATE: ACTIVE --> ");
 }
 
-void active_state_event_handler(const event_t *evt) {
-    DEBUG_ASSERT(evt);
-
-    switch (evt->id) {
-        case EVENT_MOTOR_ROTATION_PREPARE: {
-            active_state_start_preparation();
-            active_state_end_preparation_notify();
-            break;
-        }
-        case EVENT_MOTOR_TELEMETRY_UPDATE: {
-            active_state_display_motor_telemetry(g_motor_telemetry.active_phase, g_motor_telemetry.progress_percentage);
-            LCD_update_request(false);
-            break;
-        }
-        case EVENT_MOTOR_ROTATION_COMPLETE: {
-            app_state_transition_request(APP_STATE_IDLE);
-            break;
-        }
-        case EVENT_MOTOR_EMERGENCY_STOP: {
-            app_state_transition_request(APP_STATE_ERROR);
-            break;
-        }
-        default: { return; }
-    }
-}
-
-const app_state_t active_state = {
+const app_state_t active_state = { // Переменная активного состояния для хранения указателей вызова функций
     .enter = active_state_enter,
     .exit = active_state_exit,
     .event_handler = active_state_event_handler
